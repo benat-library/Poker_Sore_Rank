@@ -48,32 +48,41 @@ async function loadStats() {
   }
 }
 
-// ひも付いていない過去の記録の一覧
+// ひも付いていない過去の記録の一覧（管理者モード用。ひも付け先の部員を選ぶ）
 async function loadClaims() {
   try {
-    const names = await api('GET', '/api/stats/unclaimed');
+    const [names, users] = await Promise.all([api('GET', '/api/stats/unclaimed'), api('GET', '/api/stats/users')]);
     document.getElementById('claim-section').hidden = names.length === 0;
-    document.getElementById('claim-list').replaceChildren(...names.map((n) =>
-      el('li', { class: 'card history-item' },
-        el('div', { class: 'history-main' },
-          el('div', null,
-            el('div', { class: 'history-user' }, n.name),
-            el('div', { class: 'history-date' }, `${n.count}件 ・ ${formatDay(n.first_day)} 〜 ${formatDay(n.last_day)}`)
-          ),
-          el('button', { type: 'button', class: 'btn btn-small', onclick: () => claim(n) }, '自分の記録にする')
+    document.getElementById('claim-list').replaceChildren(...names.map((n) => {
+      const select = el('select', { 'aria-label': `${n.name} のひも付け先` },
+        el('option', { value: '' }, 'ひも付け先を選ぶ'),
+        ...users.map((u) => el('option', { value: u.discord_id }, u.username)));
+      return el('li', { class: 'card history-item' },
+        el('div', null,
+          el('div', { class: 'history-user' }, n.name),
+          el('div', { class: 'history-date' }, `${n.count}件 ・ ${formatDay(n.first_day)} 〜 ${formatDay(n.last_day)}`)
+        ),
+        el('div', { class: 'claim-row' },
+          select,
+          el('button', { type: 'button', class: 'btn btn-small', onclick: () => claim(n, select) }, 'ひも付け')
         )
-      )
-    ));
+      );
+    }));
   } catch (e) {
     showMessage(e.message, true);
   }
 }
 
-async function claim(n) {
-  if (!confirm(`「${n.name}」の記録 ${n.count}件を、あなた（${me.name}）の記録にしますか？\n他の人の記録を選んでいないか確認してください。`)) return;
+async function claim(n, select) {
+  if (!select.value) {
+    showMessage('ひも付け先の部員を選んでください', true);
+    return;
+  }
+  const ownerName = select.selectedOptions[0].textContent;
+  if (!confirm(`「${n.name}」の記録 ${n.count}件を、${ownerName} さんの記録にしますか？`)) return;
   try {
-    const result = await api('POST', '/api/stats/claim', { name: n.name });
-    showMessage(`${result.count}件を自分の記録にしました`);
+    const result = await api('POST', '/api/stats/claim', { name: n.name, discord_id: select.value });
+    showMessage(`${result.count}件を ${result.owner} さんの記録にしました`);
     load();
   } catch (e) {
     showMessage(e.message, true);
