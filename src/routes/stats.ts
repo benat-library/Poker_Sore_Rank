@@ -116,24 +116,36 @@ stats.get('/unclaimed', async (c) => {
   return c.json(results)
 })
 
-// 名前を指定して、その名前の記録を自分の記録としてひも付ける
+// ログインしたことのある部員の一覧（管理者モードで、ひも付け先を選ぶため）
+stats.get('/users', async (c) => {
+  const { results } = await c.env.DB.prepare('SELECT discord_id, username FROM users ORDER BY username').all()
+  return c.json(results)
+})
+
+// 名前を指定して、その名前の記録を指定した部員の記録としてひも付ける（管理者モード用）
 stats.post('/claim', async (c) => {
   const body = await readJson(c)
   if (!body) return errorJson(c, 400, 'リクエストの形式が正しくありません')
   const name = validateUserName(body.name)
   if (!name.ok) return errorJson(c, 400, name.error)
+  if (typeof body.discord_id !== 'string') return errorJson(c, 400, 'ひも付け先の部員を選んでください')
 
-  const user = c.get('user')
+  const owner = await c.env.DB.prepare('SELECT discord_id, username FROM users WHERE discord_id = ?')
+    .bind(body.discord_id)
+    .first<{ discord_id: string; username: string }>()
+  if (!owner) return errorJson(c, 400, 'ひも付け先の部員が見つかりません')
+
+  const actor = c.get('user').discord_id
   const target = 'user_name = ? AND discord_id IS NULL AND deleted_at IS NULL'
   const found = await c.env.DB.prepare(`SELECT COUNT(*) AS count FROM scores WHERE ${target}`).bind(name.value).first<{ count: number }>()
   if (!found || found.count === 0) return errorJson(c, 404, 'ひも付けできる記録がありません')
 
   // ひも付けと操作履歴の記録を1つのトランザクションで行う
   const [updated] = await c.env.DB.batch([
-    c.env.DB.prepare(`UPDATE scores SET discord_id = ?, updated_by = ? WHERE ${target}`).bind(user.discord_id, user.discord_id, name.value),
-    auditStmt(c.env.DB, user.discord_id, 'claim', 'score', 0, { user_name: name.value, count: found.count }, { discord_id: user.discord_id }),
+    c.env.DB.prepare(`UPDATE scores SET discord_id = ?, updated_by = ? WHERE ${target}`).bind(owner.discord_id, actor, name.value),
+    auditStmt(c.env.DB, actor, 'claim', 'score', 0, { user_name: name.value, count: found.count }, { discord_id: owner.discord_id }),
   ])
-  return c.json({ ok: true, count: updated.meta.changes })
+  return c.json({ ok: true, count: updated.meta.changes, owner: owner.username })
 })
 
 export default stats

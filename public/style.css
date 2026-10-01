@@ -246,3 +246,4 @@ body:not(.admin-mode) .admin-only { display: none !important; }
 .admin-badge { display: inline-block; padding: 2px 8px; border-radius: 999px; background: #111827; color: #fff; font-size: 0.75rem; }
 /* 見出しの連続タップで文字が選択されないようにする */
 main h1 { user-select: none; -webkit-user-select: none; }
+.claim-row { display: flex; gap: 8px; } .claim-row select { flex: 1; min-width: 0; }
