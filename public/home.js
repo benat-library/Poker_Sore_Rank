@@ -64,4 +64,4 @@ document.getElementById('create-form').addEventListener('submit', async (event) 
   }
 });
 
-loadRankings();
+startPage(loadRankings);

@@ -1,8 +1,12 @@
 // 全ページ共通の処理
 
+// 合言葉の保存先キー
+const PASSWORD_KEY = 'poker.password';
+
 // APIを呼び出す。失敗時はサーバーが返した日本語の理由を持つ Error を投げる
 async function api(method, path, body) {
-  const options = { method, headers: {} };
+  // 日本語の合言葉もヘッダーで送れるようエンコードする
+  const options = { method, headers: { 'X-App-Password': encodeURIComponent(storageGet(PASSWORD_KEY) || '') } };
   if (body !== undefined) {
     options.headers['Content-Type'] = 'application/json';
     options.body = JSON.stringify(body);
@@ -18,6 +22,11 @@ async function api(method, path, body) {
     data = await res.json();
   } catch {
     // JSON以外の応答は無視する
+  }
+  if (res.status === 401) {
+    // 合言葉が違う（変更された）場合は、保存分を消して入力画面に戻す
+    storageRemove(PASSWORD_KEY);
+    showLogin();
   }
   if (!res.ok) {
     throw new Error(data && data.error ? data.error : `エラーが発生しました（${res.status}）`);
@@ -72,6 +81,13 @@ function storageSet(key, value) {
     // 保存できなくても動作は続ける
   }
 }
+function storageRemove(key) {
+  try {
+    localStorage.removeItem(key);
+  } catch {
+    // 削除できなくても動作は続ける
+  }
+}
 
 // 入力したユーザー名の保存先キー
 const USER_NAME_KEY = 'poker.userName';
@@ -106,3 +122,46 @@ function keepDigitsOnly(input) {
     if (normalized !== input.value) input.value = normalized;
   });
 }
+
+// ---- 合言葉認証 ----
+
+// 認証後に実行する、ページごとの読み込み処理
+let onUnlocked = null;
+
+// ページの開始。合言葉が保存済みならすぐ読み込み、なければ入力画面を出す
+function startPage(load) {
+  onUnlocked = load;
+  if (storageGet(PASSWORD_KEY)) unlock();
+  else showLogin();
+}
+
+// 本来の画面を表示して読み込みを始める
+function unlock() {
+  document.body.classList.remove('locked');
+  document.getElementById('login').hidden = true;
+  if (onUnlocked) onUnlocked();
+}
+
+// 合言葉入力画面を表示する
+function showLogin() {
+  document.body.classList.add('locked');
+  document.getElementById('login').hidden = false;
+  document.getElementById('login-password').focus();
+}
+
+document.getElementById('login-form').addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const input = document.getElementById('login-password');
+  const button = event.target.querySelector('button');
+  button.disabled = true;
+  storageSet(PASSWORD_KEY, input.value);
+  try {
+    await api('POST', '/api/auth');
+    input.value = '';
+    unlock();
+  } catch (e) {
+    showMessage(e.message, true);
+  } finally {
+    button.disabled = false;
+  }
+});

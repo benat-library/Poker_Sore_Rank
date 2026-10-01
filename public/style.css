@@ -119,3 +119,8 @@ select {
 .history-amount { font-size: 1.2rem; font-weight: bold; white-space: nowrap; font-variant-numeric: tabular-nums; }
 .history-actions { display: flex; justify-content: flex-end; gap: 8px; }
 .note { font-size: 0.8rem; color: #6b7280; }
+
+/* 合言葉入力画面（未認証の間は本来の画面を隠す） */
+body.locked main { display: none; }
+.login { max-width: 400px; margin: 0 auto; padding: 48px 16px; }
+.login h1 { text-align: center; margin-bottom: 24px; }

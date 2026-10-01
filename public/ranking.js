@@ -81,4 +81,4 @@ form.addEventListener('submit', async (event) => {
   }
 });
 
-loadSummary();
+startPage(loadSummary);

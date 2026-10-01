@@ -124,4 +124,4 @@ async function deleteScore(score) {
   }
 }
 
-load();
+startPage(load);

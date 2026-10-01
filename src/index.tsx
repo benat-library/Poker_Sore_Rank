@@ -1,6 +1,7 @@
 import { Hono } from 'hono'
 import type { AppEnv } from './types'
 import { errorJson, parseId } from './lib/http'
+import { requirePassword } from './lib/auth'
 import rankings from './routes/rankings'
 import { rankingScores, scores } from './routes/scores'
 import { renderer } from './pages/layout'
@@ -11,7 +12,10 @@ import { HistoryPage } from './pages/history'
 // アプリ本体
 const app = new Hono<AppEnv>()
 
-// API
+// API（すべて合言葉が必要）
+app.use('/api/*', requirePassword)
+// 合言葉の確認用（ここまで届いた時点で合言葉は正しい）
+app.post('/api/auth', (c) => c.json({ ok: true }))
 app.route('/api/rankings', rankings)
 app.route('/api/rankings', rankingScores)
 app.route('/api/scores', scores)
