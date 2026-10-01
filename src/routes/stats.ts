@@ -1,36 +1,41 @@
 import { Hono } from 'hono'
 import type { AppEnv } from '../types'
-import { errorJson } from '../lib/http'
+import { errorJson, readJson } from '../lib/http'
 import { validateUserName } from '../lib/validation'
 import { latestClosedPeriod, statusOf, todayJst } from '../lib/period'
+import { auditStmt } from '../lib/audit'
+import { PLAYER_KEY, PLAYER_NAME } from './scores'
 
 // マイページ用の通算成績API（/api/stats）
-// 本人の判定は今のところ user_name の一致で行う。Discord連携後は discord_id に切り替える
+// 人の判定は「player_key」（Discord とひも付いた記録は Discord ID、まだの記録は 'name:名前'）で行う
 const stats = new Hono<AppEnv>()
+
+// 月間リングの有効なスコア（削除済みのランキング・スコアは除く）
+const MONTHLY_SCORES = `FROM scores s
+  JOIN rankings r ON r.id = s.ranking_id
+  LEFT JOIN users u ON u.discord_id = s.discord_id
+  WHERE r.kind = 'monthly' AND r.deleted_at IS NULL AND s.deleted_at IS NULL`
 
 // 成績のある人の一覧（名前順）
 stats.get('/players', async (c) => {
   const { results } = await c.env.DB.prepare(
-    `SELECT DISTINCT s.user_name FROM scores s JOIN rankings r ON r.id = s.ranking_id
-     WHERE r.kind = 'monthly' ORDER BY s.user_name`
-  ).all<{ user_name: string }>()
-  return c.json(results.map((r) => r.user_name))
+    `SELECT ${PLAYER_KEY} AS player_key, MAX(${PLAYER_NAME}) AS name ${MONTHLY_SCORES}
+     GROUP BY player_key ORDER BY name`
+  ).all()
+  return c.json(results)
 })
 
-// 1人分の通算成績
+// 1人分の通算成績（?player= を省略すると自分）
 stats.get('/player', async (c) => {
-  const userName = validateUserName(c.req.query('user_name'))
-  if (!userName.ok) return errorJson(c, 400, userName.error)
-
+  const player = c.req.query('player') || c.get('user').discord_id
   const today = todayJst()
 
   // 1戦（月間リングの各日）ごとの成績。同じ日のScoreで順位を付け、同点は同順位
   const games = c.env.DB.prepare(
     `WITH daily AS (
-       SELECT s.ranking_id, s.played_on, s.user_name, SUM(s.amount) AS amount
-       FROM scores s JOIN rankings r ON r.id = s.ranking_id
-       WHERE r.kind = 'monthly'
-       GROUP BY s.ranking_id, s.played_on, s.user_name
+       SELECT s.ranking_id, s.played_on, ${PLAYER_KEY} AS player_key, SUM(s.amount) AS amount
+       ${MONTHLY_SCORES}
+       GROUP BY s.ranking_id, s.played_on, player_key
      ), ranked AS (
        SELECT *,
          RANK() OVER (PARTITION BY ranking_id, played_on ORDER BY amount DESC) AS rank,
@@ -44,16 +49,15 @@ stats.get('/player', async (c) => {
        COALESCE(SUM(amount), 0) AS total,
        COALESCE(SUM(amount > 0), 0) AS wins,
        COALESCE(SUM(amount < 0), 0) AS losses
-     FROM ranked WHERE user_name = ?`
-  ).bind(userName.value)
+     FROM ranked WHERE player_key = ?`
+  ).bind(player)
 
-  // 月間リングごとの成績（確定・暫定の両方。集計は画面側で確定分だけにする）
+  // 月間リングごとの成績（確定・暫定の両方。集計は確定分だけにする）
   const rings = c.env.DB.prepare(
     `WITH totals AS (
-       SELECT s.ranking_id, s.user_name, SUM(s.amount) AS total, COUNT(DISTINCT s.played_on) AS days
-       FROM scores s JOIN rankings r ON r.id = s.ranking_id
-       WHERE r.kind = 'monthly'
-       GROUP BY s.ranking_id, s.user_name
+       SELECT s.ranking_id, ${PLAYER_KEY} AS player_key, SUM(s.amount) AS total, COUNT(DISTINCT s.played_on) AS days
+       ${MONTHLY_SCORES}
+       GROUP BY s.ranking_id, player_key
      ), ranked AS (
        SELECT *,
          RANK() OVER (PARTITION BY ranking_id ORDER BY total DESC) AS rank,
@@ -62,15 +66,17 @@ stats.get('/player', async (c) => {
      )
      SELECT r.id, r.name, r.kind, r.period, k.rank, k.players, k.total, k.days
      FROM ranked k JOIN rankings r ON r.id = k.ranking_id
-     WHERE k.user_name = ?
+     WHERE k.player_key = ?
      ORDER BY r.period DESC`
-  ).bind(userName.value)
+  ).bind(player)
 
-  const [gameRows, ringRows] = await c.env.DB.batch([games, rings])
+  const name = c.env.DB.prepare(`SELECT MAX(${PLAYER_NAME}) AS name ${MONTHLY_SCORES} AND ${PLAYER_KEY} = ?`).bind(player)
+
+  const [gameRows, ringRows, nameRows] = await c.env.DB.batch([games, rings, name])
   const g = gameRows.results[0] as Record<string, number | null>
-  const ringList = (ringRows.results as { id: number; name: string; kind: string; period: string; rank: number; players: number; total: number; days: number }[]).map(
-    (r) => ({ ...r, status: statusOf(r, today) })
-  )
+  const ringList = (
+    ringRows.results as { id: number; name: string; kind: string; period: string; rank: number; players: number; total: number; days: number }[]
+  ).map((r) => ({ ...r, status: statusOf(r, today) }))
 
   // 確定した月間リングだけを集計する
   const cutoff = latestClosedPeriod(today)
@@ -78,7 +84,8 @@ stats.get('/player', async (c) => {
   const average = (values: number[]) => (values.length ? values.reduce((a, b) => a + b, 0) / values.length : null)
 
   return c.json({
-    user_name: userName.value,
+    player_key: player,
+    name: (nameRows.results[0] as { name: string | null } | undefined)?.name ?? c.get('user').username,
     games: {
       count: g.count ?? 0,
       firsts: g.firsts ?? 0,
@@ -96,6 +103,37 @@ stats.get('/player', async (c) => {
     },
     ring_list: ringList,
   })
+})
+
+// まだ誰にもひも付いていない名前の一覧（自分の過去の記録を探すため）
+stats.get('/unclaimed', async (c) => {
+  const { results } = await c.env.DB.prepare(
+    `SELECT s.user_name AS name, COUNT(*) AS count, MIN(s.played_on) AS first_day, MAX(s.played_on) AS last_day
+     FROM scores s JOIN rankings r ON r.id = s.ranking_id
+     WHERE s.discord_id IS NULL AND s.deleted_at IS NULL AND r.deleted_at IS NULL
+     GROUP BY s.user_name ORDER BY s.user_name`
+  ).all()
+  return c.json(results)
+})
+
+// 名前を指定して、その名前の記録を自分の記録としてひも付ける
+stats.post('/claim', async (c) => {
+  const body = await readJson(c)
+  if (!body) return errorJson(c, 400, 'リクエストの形式が正しくありません')
+  const name = validateUserName(body.name)
+  if (!name.ok) return errorJson(c, 400, name.error)
+
+  const user = c.get('user')
+  const target = 'user_name = ? AND discord_id IS NULL AND deleted_at IS NULL'
+  const found = await c.env.DB.prepare(`SELECT COUNT(*) AS count FROM scores WHERE ${target}`).bind(name.value).first<{ count: number }>()
+  if (!found || found.count === 0) return errorJson(c, 404, 'ひも付けできる記録がありません')
+
+  // ひも付けと操作履歴の記録を1つのトランザクションで行う
+  const [updated] = await c.env.DB.batch([
+    c.env.DB.prepare(`UPDATE scores SET discord_id = ?, updated_by = ? WHERE ${target}`).bind(user.discord_id, user.discord_id, name.value),
+    auditStmt(c.env.DB, user.discord_id, 'claim', 'score', 0, { user_name: name.value, count: found.count }, { discord_id: user.discord_id }),
+  ])
+  return c.json({ ok: true, count: updated.meta.changes })
 })
 
 export default stats

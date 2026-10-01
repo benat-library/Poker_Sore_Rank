@@ -234,3 +234,15 @@ input[type="month"] {
 .guide-table th { font-size: 0.8rem; color: #6b7280; font-weight: normal; }
 .guide-table td.plus, .guide-table td.minus { font-weight: bold; }
 .rebuy-note { margin: 0; color: #dc2626; font-size: 0.85rem; font-weight: bold; }
+
+/* ログイン画面 */
+.login { max-width: 400px; margin: 0 auto; padding: 48px 0; }
+.login h1 { text-align: center; margin-bottom: 24px; }
+.btn-discord { background: #5865f2; border-color: #5865f2; color: #fff; }
+.login-error { margin: 0; padding: 10px 12px; border-radius: 8px; background: #fef2f2; color: #991b1b; font-size: 0.9rem; }
+
+/* 管理者モードでだけ表示する要素 */
+body:not(.admin-mode) .admin-only { display: none !important; }
+.admin-badge { display: inline-block; padding: 2px 8px; border-radius: 999px; background: #111827; color: #fff; font-size: 0.75rem; }
+/* 見出しの連続タップで文字が選択されないようにする */
+main h1 { user-select: none; -webkit-user-select: none; }

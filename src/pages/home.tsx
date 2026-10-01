@@ -9,7 +9,8 @@ export const HomePage = () => (
       </div>
     </header>
 
-    <form id="create-form" class="card form-row" novalidate>
+    <p class="admin-only"><span class="admin-badge">管理者モード</span></p>
+    <form id="create-form" class="card form-row admin-only" novalidate>
       <div class="segmented" role="group" aria-label="ランキングの種類">
         <button type="button" class="segment active" data-kind="monthly" aria-pressed="true">月間リング</button>
         <button type="button" class="segment" data-kind="event" aria-pressed="false">その他イベント</button>
@@ -27,7 +28,7 @@ export const HomePage = () => (
 
     <div class="section-header">
       <h2>ランキング一覧</h2>
-      <button id="delete-mode" type="button" class="btn btn-small" aria-pressed="false">削除モード</button>
+      <button id="delete-mode" type="button" class="btn btn-small admin-only" aria-pressed="false">削除モード</button>
     </div>
     <ul id="ranking-list" class="list"></ul>
     <p id="empty" class="muted" hidden>まだランキングがありません</p>

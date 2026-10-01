@@ -2,6 +2,12 @@ name = "poker-score-rank"
 main = "src/index.tsx"
 compatibility_date = "2025-09-01"
 
+# Discord ログインの設定（秘密情報ではない値）
+# Client Secret は秘密情報なので、ここには書かず wrangler secret put DISCORD_CLIENT_SECRET で設定する
+[vars]
+DISCORD_CLIENT_ID = "REMOVED"
+DISCORD_GUILD_ID = "REMOVED"
+
 # D1データベースの設定（コードからは c.env.DB として参照する）
 [[d1_databases]]
 binding = "DB"

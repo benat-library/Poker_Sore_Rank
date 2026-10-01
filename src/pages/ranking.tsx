@@ -45,10 +45,9 @@ export const RankingPage = ({ id }: { id: number }) => (
     <section id="input-section">
       <h2>Scoreを入力</h2>
       <form id="score-form" class="card form-row" novalidate>
-        <label>
-          ユーザー名
-          <input id="user-name" type="text" maxlength={30} autocomplete="nickname" required />
-        </label>
+        <p class="input-user">
+          入力者：<strong id="input-user-name"></strong>
+        </p>
 
         {/* 月間リング：最終チップ数とRebuy回数を入力し、Scoreは自動で計算する */}
         <div id="chip-fields" hidden>

@@ -1,10 +1,17 @@
-import { jsxRenderer } from 'hono/jsx-renderer'
+import { jsxRenderer, useRequestContext } from 'hono/jsx-renderer'
+import type { LoginUser } from '../types'
 
 // c.render() に渡す追加情報（ページタイトルと、読み込むページ別スクリプト。複数可）
 declare module 'hono' {
   interface ContextRenderer {
     (content: string | Promise<string>, props: { title: string; script?: string | string[] }): Response | Promise<Response>
   }
+}
+
+// ログイン中の部員を、画面のJSが使えるよう body の data 属性に入れる
+function userAttrs() {
+  const user = useRequestContext().get('user') as LoginUser | undefined
+  return user ? { 'data-user-id': user.discord_id, 'data-user-name': user.username } : {}
 }
 
 // 全ページ共通の外枠
@@ -22,7 +29,7 @@ export const renderer = jsxRenderer(
           <script src={`/${src}`} defer></script>
         ))}
       </head>
-      <body>
+      <body {...userAttrs()}>
         <div id="message" class="message" hidden></div>
         <main>{children}</main>
       </body>

@@ -16,6 +16,7 @@ function safeText(text: string): string {
 type ScoreRow = {
   id: number
   user_name: string
+  discord_id: string | null
   amount: number
   played_on: string
   created_at: string
@@ -30,18 +31,19 @@ export async function exportCsv(c: Context<AppEnv>) {
 
   // DBとの往復を1回にするため、存在確認とスコア取得をまとめて送る
   const [ranking, scores] = await c.env.DB.batch([
-    c.env.DB.prepare('SELECT id FROM rankings WHERE id = ?').bind(id),
+    c.env.DB.prepare('SELECT id FROM rankings WHERE id = ? AND deleted_at IS NULL').bind(id),
     c.env.DB.prepare(
-      'SELECT id, user_name, amount, played_on, created_at, final_chips, rebuys FROM scores WHERE ranking_id = ? ORDER BY played_on, id'
+      `SELECT id, user_name, discord_id, amount, played_on, created_at, final_chips, rebuys FROM scores
+       WHERE ranking_id = ? AND deleted_at IS NULL ORDER BY played_on, id`
     ).bind(id),
   ])
   if (ranking.results.length === 0) return errorJson(c, 404, 'ランキングが見つかりません')
   const results = scores.results as ScoreRow[]
 
   const lines = [
-    'id,user_name,amount,played_on,created_at,final_chips,rebuys',
+    'id,user_name,amount,played_on,created_at,final_chips,rebuys,discord_id',
     ...results.map((r) =>
-      [r.id, csvField(safeText(r.user_name)), r.amount, r.played_on, r.created_at, r.final_chips ?? '', r.rebuys ?? ''].join(',')
+      [r.id, csvField(safeText(r.user_name)), r.amount, r.played_on, r.created_at, r.final_chips ?? '', r.rebuys ?? '', r.discord_id ?? ''].join(',')
     ),
   ]
   // 先頭の ﻿ がBOM（Excelで日本語が文字化けしないようにする）。改行はExcelに合わせて CRLF

@@ -1,40 +1,39 @@
 // マイページ：全月間リングを通した通算成績
 
 const filterEl = document.getElementById('user-filter');
-const myName = (storageGet(USER_NAME_KEY) || '').trim();
 
-// 表示できる人の一覧を読み込み、初期表示は自分にする
+// 表示できる人の一覧（管理者モード用）を読み込み、初期表示は自分にする
 async function load() {
   try {
     const players = await api('GET', '/api/stats/players');
-    const current = filterEl.value || myName;
-    const others = players.filter((n) => n !== myName);
-    const options = [];
-    if (myName) options.push(el('option', { value: myName }, `自分（${myName}）`));
-    else options.push(el('option', { value: '' }, '選択してください'));
-    others.forEach((n) => options.push(el('option', { value: n }, n)));
+    const current = filterEl.value || me.id;
+    const options = [el('option', { value: me.id }, `自分（${me.name}）`)];
+    players.filter((p) => p.player_key !== me.id).forEach((p) => options.push(el('option', { value: p.player_key }, p.name)));
     filterEl.replaceChildren(...options);
     if ([...filterEl.options].some((o) => o.value === current)) filterEl.value = current;
     loadStats();
+    loadClaims();
   } catch (e) {
     showMessage(e.message, true);
   }
 }
 filterEl.addEventListener('change', loadStats);
+// 管理者モードをオフにしたら自分の成績に戻す
+document.addEventListener('adminmodechange', () => {
+  if (!isAdminMode() && filterEl.value !== me.id) {
+    filterEl.value = me.id;
+    loadStats();
+  }
+});
 
 // 選んだ人の成績を読み込んで表示する
 async function loadStats() {
-  const target = filterEl.value;
+  const target = filterEl.value || me.id;
   const noData = document.getElementById('no-data');
   const stats = document.getElementById('stats');
-  if (!target) {
-    stats.hidden = true;
-    noData.hidden = false;
-    noData.textContent = 'ランキング画面でユーザー名を入力すると、自分の成績が表示されます';
-    return;
-  }
   try {
-    const data = await api('GET', `/api/stats/player?user_name=${encodeURIComponent(target)}`);
+    const data = await api('GET', `/api/stats/player?player=${encodeURIComponent(target)}`);
+    document.getElementById('player-name').textContent = data.name;
     if (data.games.count === 0) {
       stats.hidden = true;
       noData.hidden = false;
@@ -44,6 +43,38 @@ async function loadStats() {
     noData.hidden = true;
     stats.hidden = false;
     renderStats(data);
+  } catch (e) {
+    showMessage(e.message, true);
+  }
+}
+
+// ひも付いていない過去の記録の一覧
+async function loadClaims() {
+  try {
+    const names = await api('GET', '/api/stats/unclaimed');
+    document.getElementById('claim-section').hidden = names.length === 0;
+    document.getElementById('claim-list').replaceChildren(...names.map((n) =>
+      el('li', { class: 'card history-item' },
+        el('div', { class: 'history-main' },
+          el('div', null,
+            el('div', { class: 'history-user' }, n.name),
+            el('div', { class: 'history-date' }, `${n.count}件 ・ ${formatDay(n.first_day)} 〜 ${formatDay(n.last_day)}`)
+          ),
+          el('button', { type: 'button', class: 'btn btn-small', onclick: () => claim(n) }, '自分の記録にする')
+        )
+      )
+    ));
+  } catch (e) {
+    showMessage(e.message, true);
+  }
+}
+
+async function claim(n) {
+  if (!confirm(`「${n.name}」の記録 ${n.count}件を、あなた（${me.name}）の記録にしますか？\n他の人の記録を選んでいないか確認してください。`)) return;
+  try {
+    const result = await api('POST', '/api/stats/claim', { name: n.name });
+    showMessage(`${result.count}件を自分の記録にしました`);
+    load();
   } catch (e) {
     showMessage(e.message, true);
   }
