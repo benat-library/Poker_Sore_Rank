@@ -28,14 +28,15 @@ export async function exportCsv(c: Context<AppEnv>) {
   const id = parseId(c.req.param('id') ?? '')
   if (id === null) return errorJson(c, 400, 'ランキングIDが正しくありません')
 
-  const ranking = await c.env.DB.prepare('SELECT id FROM rankings WHERE id = ?').bind(id).first()
-  if (!ranking) return errorJson(c, 404, 'ランキングが見つかりません')
-
-  const { results } = await c.env.DB.prepare(
-    'SELECT id, user_name, amount, played_on, created_at, final_chips, rebuys FROM scores WHERE ranking_id = ? ORDER BY played_on, id'
-  )
-    .bind(id)
-    .all<ScoreRow>()
+  // DBとの往復を1回にするため、存在確認とスコア取得をまとめて送る
+  const [ranking, scores] = await c.env.DB.batch([
+    c.env.DB.prepare('SELECT id FROM rankings WHERE id = ?').bind(id),
+    c.env.DB.prepare(
+      'SELECT id, user_name, amount, played_on, created_at, final_chips, rebuys FROM scores WHERE ranking_id = ? ORDER BY played_on, id'
+    ).bind(id),
+  ])
+  if (ranking.results.length === 0) return errorJson(c, 404, 'ランキングが見つかりません')
+  const results = scores.results as ScoreRow[]
 
   const lines = [
     'id,user_name,amount,played_on,created_at,final_chips,rebuys',

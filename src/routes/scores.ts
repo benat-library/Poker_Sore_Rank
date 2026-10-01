@@ -16,9 +16,14 @@ import { withStatus } from './rankings'
 // ランキング配下のスコアAPI（/api/rankings/:id/...）
 export const rankingScores = new Hono<AppEnv>()
 
+// ランキングを取得する文（種類・年月も含む）
+function rankingStmt(db: D1Database, id: number) {
+  return db.prepare('SELECT id, name, kind, period FROM rankings WHERE id = ?').bind(id)
+}
+
 // ランキングが存在するか確認し、存在すれば種類・年月も含めて返す
 async function findRanking(db: D1Database, id: number) {
-  return db.prepare('SELECT id, name, kind, period FROM rankings WHERE id = ?').bind(id).first<RankingInfo>()
+  return rankingStmt(db, id).first<RankingInfo>()
 }
 
 // スコアが属するランキングを返す
@@ -52,7 +57,6 @@ function readScoreValues(body: Record<string, unknown>, ranking: RankingInfo): R
 rankingScores.get('/:id/scores', async (c) => {
   const id = parseId(c.req.param('id'))
   if (id === null) return errorJson(c, 400, 'ランキングIDが正しくありません')
-  if (!(await findRanking(c.env.DB, id))) return errorJson(c, 404, 'ランキングが見つかりません')
 
   const userName = c.req.query('user_name')
   const columns = 'id, ranking_id, user_name, amount, final_chips, rebuys, played_on, created_at'
@@ -61,27 +65,31 @@ rankingScores.get('/:id/scores', async (c) => {
     userName === undefined
       ? c.env.DB.prepare(`SELECT ${columns} FROM scores WHERE ranking_id = ? ${order}`).bind(id)
       : c.env.DB.prepare(`SELECT ${columns} FROM scores WHERE ranking_id = ? AND user_name = ? ${order}`).bind(id, userName.trim())
-  const { results } = await stmt.all()
-  return c.json(results)
+  // DBとの往復を1回にするため、存在確認とスコア取得をまとめて送る
+  const [ranking, scores] = await c.env.DB.batch([rankingStmt(c.env.DB, id), stmt])
+  if (ranking.results.length === 0) return errorJson(c, 404, 'ランキングが見つかりません')
+  return c.json(scores.results)
 })
 
 // 集計済み順位表（合計Scoreの降順）。参加回数は同じ日の入力を1回と数える
 rankingScores.get('/:id/summary', async (c) => {
   const id = parseId(c.req.param('id'))
   if (id === null) return errorJson(c, 400, 'ランキングIDが正しくありません')
-  const ranking = await findRanking(c.env.DB, id)
-  if (!ranking) return errorJson(c, 404, 'ランキングが見つかりません')
 
-  const { results } = await c.env.DB.prepare(
-    `SELECT user_name, SUM(amount) AS total, COUNT(DISTINCT played_on) AS days
-     FROM scores
-     WHERE ranking_id = ?
-     GROUP BY user_name
-     ORDER BY total DESC, user_name ASC`
-  )
-    .bind(id)
-    .all()
-  return c.json({ ranking: withStatus(ranking), rows: results })
+  // DBとの往復を1回にするため、ランキング取得と集計をまとめて送る
+  const [rankingResult, summary] = await c.env.DB.batch([
+    rankingStmt(c.env.DB, id),
+    c.env.DB.prepare(
+      `SELECT user_name, SUM(amount) AS total, COUNT(DISTINCT played_on) AS days
+       FROM scores
+       WHERE ranking_id = ?
+       GROUP BY user_name
+       ORDER BY total DESC, user_name ASC`
+    ).bind(id),
+  ])
+  const ranking = rankingResult.results[0] as RankingInfo | undefined
+  if (!ranking) return errorJson(c, 404, 'ランキングが見つかりません')
+  return c.json({ ranking: withStatus(ranking), rows: summary.results })
 })
 
 // スコア登録（同じ人・同じ日の入力がすでにあれば上書きする）
