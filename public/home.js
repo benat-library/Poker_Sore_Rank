@@ -33,7 +33,7 @@ periodInput.value = todayString().slice(0, 7);
 async function loadRankings() {
   try {
     const rankings = await api('GET', '/api/rankings');
-    listEl.replaceChildren(...rankings.map(renderRanking));
+    renderPaged(listEl, rankings, renderRanking);
     emptyEl.hidden = rankings.length > 0;
   } catch (e) {
     showMessage(e.message, true);

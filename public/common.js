@@ -142,6 +142,37 @@ function statusBadge(ranking) {
   return el('span', { class: 'badge badge-closed' }, '確定');
 }
 
+// 一覧を PAGE_SIZE 件ずつに分け、一覧の下にページ番号のタブを出す
+// 表示中のページは listEl.dataset.page に覚えておき、削除などで描き直しても同じページを保つ
+const PAGE_SIZE = 10;
+function renderPaged(listEl, items, renderItem) {
+  const pages = Math.max(1, Math.ceil(items.length / PAGE_SIZE));
+  const page = Math.min(Number(listEl.dataset.page) || 1, pages);
+  listEl.dataset.page = String(page);
+  listEl.replaceChildren(...items.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE).map(renderItem));
+
+  let pager = listEl.nextElementSibling;
+  if (!pager || !pager.classList.contains('pager')) {
+    pager = el('nav', { class: 'pager', 'aria-label': 'ページ切り替え' });
+    listEl.after(pager);
+  }
+  pager.hidden = pages === 1;
+  pager.replaceChildren(...Array.from({ length: pages }, (_, i) => {
+    const n = i + 1;
+    return el('button', {
+      type: 'button',
+      class: n === page ? 'pager-btn active' : 'pager-btn',
+      'aria-current': n === page ? 'page' : 'false',
+      onclick: () => {
+        listEl.dataset.page = String(n);
+        renderPaged(listEl, items, renderItem);
+        // 切り替えたページの先頭が見えるようにする
+        if (listEl.getBoundingClientRect().top < 0) listEl.scrollIntoView({ block: 'start' });
+      },
+    }, n);
+  }));
+}
+
 // 「2026-10-03」を「10月3日」にする
 function monthDay(date) {
   const [, m, d] = date.split('-').map(Number);

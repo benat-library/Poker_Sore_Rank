@@ -31,6 +31,8 @@ async function loadStats() {
   const target = filterEl.value || me.id;
   const noData = document.getElementById('no-data');
   const stats = document.getElementById('stats');
+  // 表示する人を切り替えたら、一覧は1ページ目から表示する
+  document.getElementById('ring-list').dataset.page = '';
   try {
     const data = await api('GET', `/api/stats/player?player=${encodeURIComponent(target)}`);
     document.getElementById('player-name').textContent = data.name;
@@ -130,7 +132,7 @@ function renderStats(data) {
   setStat('ring-avg-players', avg(r.avg_players), '人');
 
   // 月間リングごとの順位（確定前のものは暫定）
-  document.getElementById('ring-list').replaceChildren(...data.ring_list.map((ring) =>
+  renderPaged(document.getElementById('ring-list'), data.ring_list, (ring) =>
     el('li', { class: 'card list-item' },
       el('a', { class: 'list-link ring-row', href: `/ranking/${ring.id}` },
         el('div', null,
@@ -140,7 +142,7 @@ function renderStats(data) {
         el('div', { class: `history-amount ${amountClass(ring.total)}` }, formatAmount(ring.total))
       )
     )
-  ));
+  );
 }
 
 load();

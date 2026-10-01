@@ -86,6 +86,15 @@ a { color: #1d4ed8; }
 .list-title { font-weight: bold; overflow-wrap: anywhere; }
 .list-meta { font-size: 0.85rem; color: var(--muted); }
 
+/* 一覧のページ切り替え（10件ずつ） */
+.pager { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 14px; }
+.pager-btn {
+  min-width: 44px; min-height: 44px; padding: 0 10px; border-radius: 22px;
+  border: 1px solid rgba(255, 255, 255, 0.5); background: transparent; color: var(--on-felt);
+  font-size: 1rem; font-weight: 700; font-variant-numeric: tabular-nums; cursor: pointer;
+}
+.pager-btn.active { background: var(--paper); border-color: var(--paper); color: var(--primary); }
+
 /* フォーム */
 .form-row { display: flex; flex-direction: column; gap: 10px; }
 input[type="text"], input[type="date"], input[inputmode="numeric"] {
@@ -197,6 +206,8 @@ select {
 .me-name { margin: 0; font-size: 1.1rem; font-weight: 700; overflow-wrap: anywhere; }
 .me-section { margin: 28px 0 2px; text-align: center; font-size: 1.25rem; letter-spacing: 0.1em; text-shadow: 0 2px 6px rgba(0, 0, 0, 0.3); }
 .me-section-note { margin: 0 0 10px; text-align: center; }
+/* 説明文のない見出し（月間リングごとの順位）は一覧との間を空ける */
+.me-section + .list { margin-top: 16px; }
 .stat-list { display: flex; flex-direction: column; gap: 10px; }
 .stat-card { padding: 6px 20px; }
 .stat-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 48px; }
