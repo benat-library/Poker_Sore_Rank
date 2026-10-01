@@ -35,7 +35,9 @@ export const RankingPage = ({ id }: { id: number }) => (
         <div id="chart-legend" class="chart-legend"></div>
         <div id="chart" class="chart"></div>
         <p id="chart-wait" class="muted chart-help">2日分以上の記録があるとグラフを表示します</p>
-        <p id="chart-help" class="note chart-help">上位5人と自分を色付きで表示します。順位表の名前をタップすると、その人の線を強調します</p>
+        <p id="chart-help" class="note chart-help">
+          上位5人と自分を色付きで表示します。<span class="sp-break">順位表の名前をタップすると、その人の線を強調します</span>
+        </p>
       </div>
     </section>
 

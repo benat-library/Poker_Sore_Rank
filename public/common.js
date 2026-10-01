@@ -138,7 +138,7 @@ function keepDigitsOnly(input) {
 function statusBadge(ranking) {
   if (ranking.kind !== 'monthly') return el('span', { class: 'badge badge-event' }, 'イベント');
   if (ranking.status === 'open') return el('span', { class: 'badge badge-open' }, '開催中');
-  if (ranking.status === 'grace') return el('span', { class: 'badge badge-grace' }, '締め・入力猶予中');
+  if (ranking.status === 'grace') return el('span', { class: 'badge badge-grace' }, '締め間近');
   return el('span', { class: 'badge badge-closed' }, '確定');
 }
 
@@ -177,7 +177,7 @@ function chipFormula(rule, finalChips, rebuys) {
   return `（${finalChips} − 初期${rule.start}${rebuys ? ` − Rebuy ${rule.rebuy}×${rebuys}` : ''}）`;
 }
 
-// ---- 管理者モード（ページの見出しを3秒以内に5回タップで切り替え） ----
+// ---- 管理者モード（ページの見出し、またはホームの「ランキング一覧」を3秒以内に5回タップで切り替え） ----
 const ADMIN_KEY = 'poker.admin';
 function isAdminMode() {
   return storageGet(ADMIN_KEY) === '1';
@@ -188,7 +188,7 @@ function applyAdminMode() {
 }
 let adminTaps = [];
 document.addEventListener('click', (event) => {
-  if (!event.target.closest('main h1')) return;
+  if (!event.target.closest('main h1, .admin-toggle')) return;
   const now = Date.now();
   adminTaps = adminTaps.filter((t) => now - t < 3000).concat(now);
   if (adminTaps.length < 5) return;

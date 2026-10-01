@@ -48,6 +48,9 @@ export const renderer = jsxRenderer(
         <meta name="robots" content="noindex, nofollow" />
         <meta name="theme-color" content="#0b4a32" />
         <title>{title}</title>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700;800&display=swap" />
         <link rel="stylesheet" href="/style.css" />
         <script src="/common.js" defer></script>
         {[script ?? []].flat().map((src) => (

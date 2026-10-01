@@ -1,18 +1,21 @@
 // マイページ：全月間リングを通した通算成績（データは me.js が取得・描画する）
-const Stat = ({ id, label, wide }: { id: string; label: string; wide?: boolean }) => (
-  <div class={wide ? 'card stat stat-wide' : 'card stat'}>
-    <div class="stat-label">{label}</div>
-    <div id={id} class="stat-value"></div>
-    <div id={`${id}-sub`} class="stat-sub"></div>
+
+// 成績の1行（左に項目名、右に数字と単位）。big は大きく色付きで目立たせる
+const Row = ({ id, label, sub, big }: { id: string; label: string; sub?: boolean; big?: boolean }) => (
+  <div class={`stat-row${sub ? ' stat-row-sub' : ''}${big ? ' stat-row-big' : ''}`}>
+    <span class="stat-label">{label}</span>
+    <span id={id} class="stat-value"></span>
   </div>
 )
 
 export const MyPage = () => (
   <>
-    <h1>マイページ</h1>
-    <p class="muted">
-      <strong id="player-name"></strong> さんの成績
-    </p>
+    <div class="me-header">
+      <h1>戦績</h1>
+      <p class="me-name">
+        <span id="player-name"></span> さん
+      </p>
+    </div>
 
     {/* 管理者モードでだけ、他の人の成績に切り替えられる */}
     <label class="filter admin-only">
@@ -23,27 +26,40 @@ export const MyPage = () => (
     <p id="no-data" class="muted" hidden></p>
 
     <div id="stats" hidden>
-      <h2>1戦ごとの成績</h2>
-      <p class="note">月間リングの1日を1戦として数えます</p>
-      <div class="stat-grid">
-        <Stat id="game-count" label="参加" />
-        <Stat id="game-firsts" label="1位" />
-        <Stat id="game-avg-rank" label="平均順位" />
-        <Stat id="game-avg-players" label="平均参加人数" />
-        <Stat id="game-total" label="通算Score" />
-        <Stat id="game-winrate" label="勝率（プラスで終えた割合）" />
+      <h2 class="me-section">1戦ごとの成績</h2>
+      <p class="note me-section-note">月間リングの1日を1戦として集計（プラスで終えたら勝ち）</p>
+      <div class="stat-list">
+        <div class="card stat-card"><Row id="game-count" label="参加" /></div>
+        <div class="card stat-card">
+          <Row id="game-firsts" label="1位" big />
+          <Row id="game-first-rate" label="1位率" sub />
+        </div>
+        <div class="card stat-card">
+          <Row id="game-avg-rank" label="平均順位" />
+          <Row id="game-avg-players" label="平均参加人数" sub />
+        </div>
+        <div class="card stat-card"><Row id="game-total" label="通算Score" /></div>
+        <div class="card stat-card">
+          <Row id="game-winrate" label="勝率" big />
+          <Row id="game-record" label="勝敗" sub />
+        </div>
       </div>
 
-      <h2>月間リングの成績</h2>
-      <p class="note">確定した月間リングだけを数えます</p>
-      <div class="stat-grid">
-        <Stat id="ring-count" label="参加" />
-        <Stat id="ring-firsts" label="1位" />
-        <Stat id="ring-avg-rank" label="平均順位" />
-        <Stat id="ring-avg-players" label="平均参加人数" />
+      <h2 class="me-section">月間リングの成績</h2>
+      <p class="note me-section-note">確定した月間リング戦のみ集計</p>
+      <div class="stat-list">
+        <div class="card stat-card"><Row id="ring-count" label="参加" /></div>
+        <div class="card stat-card">
+          <Row id="ring-firsts" label="1位" big />
+          <Row id="ring-first-rate" label="1位率" sub />
+        </div>
+        <div class="card stat-card">
+          <Row id="ring-avg-rank" label="平均順位" />
+          <Row id="ring-avg-players" label="平均参加人数" sub />
+        </div>
       </div>
 
-      <h2>月間リングごとの順位</h2>
+      <h2 class="me-section">月間リングごとの順位</h2>
       <ul id="ring-list" class="list"></ul>
     </div>
 

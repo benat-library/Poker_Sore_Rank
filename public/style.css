@@ -21,16 +21,19 @@
   --gold: #d4a017;
   --silver: #9ca3af;
   --bronze: #b8733e;
+  --highlight-gold: #c98500;   /* マイページで目立たせる数字 */
+  --highlight-teal: #0b9a84;
   --shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
 }
 
 /* 全体 */
 [hidden] { display: none !important; }
 * { box-sizing: border-box; }
+button, input, select { font-family: inherit; }
 body {
   margin: 0;
   min-height: 100vh;
-  font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Noto Sans JP", sans-serif;
+  font-family: "M PLUS Rounded 1c", "Hiragino Maru Gothic ProN", "Hiragino Sans", "Noto Sans JP", sans-serif;
   font-size: 16px;
   line-height: 1.5;
   color: var(--on-felt);
@@ -39,9 +42,8 @@ body {
   background-repeat: no-repeat;
 }
 main { max-width: 640px; margin: 0 auto; padding: 16px; }
-h1 { font-size: 1.4rem; margin: 0 0 8px; letter-spacing: 0.02em; }
-h2 { font-size: 1.1rem; margin: 24px 0 8px; }
-main > h2, section > h2, .section-header h2 { padding-left: 10px; border-left: 4px solid var(--gold); line-height: 1.3; }
+h1 { font-size: 1.4rem; font-weight: 800; margin: 0 0 8px; letter-spacing: 0.04em; }
+h2 { font-size: 1.15rem; font-weight: 800; margin: 28px 0 10px; letter-spacing: 0.04em; }
 a { color: #1d4ed8; }
 .muted { color: var(--on-felt-muted); }
 .card .muted { color: var(--muted); }
@@ -73,6 +75,7 @@ a { color: #1d4ed8; }
 /* ページ上部 */
 .section-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 24px 0 8px; }
 .section-header h2 { margin: 0; }
+.section-header-first { margin-top: 8px; }
 .page-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 16px; }
 
 /* カード・リスト */
@@ -188,13 +191,22 @@ select {
 /* ページ下部のボタン */
 .page-footer { display: flex; justify-content: center; margin: 32px 0 16px; }
 
-/* マイページの統計 */
-.stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.stat { padding: 12px 14px; }
-.stat-wide { grid-column: 1 / -1; }
-.stat-label { font-size: 0.8rem; color: var(--muted); }
-.stat-value { font-size: 1.4rem; font-weight: bold; font-variant-numeric: tabular-nums; }
-.stat-sub { font-size: 0.85rem; color: var(--muted); }
+/* マイページの戦績（左に項目名、右に数字と単位） */
+.me-header { text-align: center; margin: 8px 0 12px; }
+.me-header h1 { margin: 0; font-size: 2rem; letter-spacing: 0.2em; text-shadow: 0 2px 6px rgba(0, 0, 0, 0.3); }
+.me-name { margin: 0; font-size: 1.1rem; font-weight: 700; overflow-wrap: anywhere; }
+.me-section { margin: 28px 0 2px; text-align: center; font-size: 1.25rem; letter-spacing: 0.1em; text-shadow: 0 2px 6px rgba(0, 0, 0, 0.3); }
+.me-section-note { margin: 0 0 10px; text-align: center; }
+.stat-list { display: flex; flex-direction: column; gap: 10px; }
+.stat-card { padding: 6px 20px; }
+.stat-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 48px; }
+.stat-label { font-weight: 800; color: var(--primary); letter-spacing: 0.06em; }
+.stat-row-sub .stat-label { font-weight: 700; color: var(--ink-sub); font-size: 0.95rem; }
+.stat-value { font-weight: 700; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.stat-num { font-size: 1.35rem; letter-spacing: 0.03em; }
+.stat-unit { margin-left: 4px; font-size: 0.95rem; color: var(--ink-sub); }
+.stat-row-big .stat-num { font-size: 2.3rem; font-weight: 800; line-height: 1.1; color: var(--highlight-gold); }
+.stat-row-big #game-winrate .stat-num { color: var(--highlight-teal); }
 
 /* 推移グラフ */
 .chart-card { padding: 12px 8px; }
@@ -255,6 +267,8 @@ input[type="month"] {
 .chart-tooltip-row { display: flex; align-items: center; gap: 6px; }
 .chart-tooltip-name { flex: 1; }
 .chart-help { padding: 8px 8px 0; margin: 0; }
+/* スマホ幅でだけ、ここから改行する */
+@media (max-width: 480px) { .sp-break { display: block; } }
 
 /* マイページの月間リング一覧 */
 .ring-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; }

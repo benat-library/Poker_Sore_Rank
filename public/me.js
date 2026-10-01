@@ -92,38 +92,42 @@ async function changeLink(link, select) {
   }
 }
 
-// 数値を表示する（main：大きく表示、sub：補足）
-function setStat(id, main, sub, cls) {
+// 数値を表示する（数字を大きく、単位を小さく。cls はプラス・マイナスの色）
+function setStat(id, value, unit, cls) {
   const node = document.getElementById(id);
-  node.textContent = main;
   node.className = `stat-value ${cls || ''}`;
-  document.getElementById(`${id}-sub`).textContent = sub || '';
+  node.replaceChildren(el('span', { class: 'stat-num' }, value));
+  if (unit && value !== '-') node.append(el('span', { class: 'stat-unit' }, unit));
 }
 
-// 割合（%）。分母が0なら「-」
+// 割合（%の数字だけ）。分母が0なら「-」
 function percent(part, whole) {
-  return whole ? `${Math.round((part / whole) * 100)}%` : '-';
+  return whole ? String(Math.round((part / whole) * 100)) : '-';
 }
 
-// 平均（小数1桁）。値がなければ「-」
-function avg(value, unit) {
-  return value === null || value === undefined ? '-' : `${value.toFixed(1)}${unit}`;
+// 平均（小数1桁の数字だけ）。値がなければ「-」
+function avg(value) {
+  return value === null || value === undefined ? '-' : value.toFixed(1);
 }
 
 function renderStats(data) {
   const g = data.games;
-  setStat('game-count', `${g.count}戦`);
-  setStat('game-firsts', `${g.firsts}回`, `1位率 ${percent(g.firsts, g.count)}`);
-  setStat('game-avg-rank', avg(g.avg_rank, '位'));
-  setStat('game-avg-players', avg(g.avg_players, '人'));
+  const draws = g.count - g.wins - g.losses;
+  setStat('game-count', String(g.count), '戦');
+  setStat('game-firsts', String(g.firsts), '回');
+  setStat('game-first-rate', percent(g.firsts, g.count), '%');
+  setStat('game-avg-rank', avg(g.avg_rank), '位');
+  setStat('game-avg-players', avg(g.avg_players), '人');
   setStat('game-total', formatAmount(g.total), '', amountClass(g.total));
-  setStat('game-winrate', percent(g.wins, g.count), `${g.wins}勝 ${g.losses}敗${g.count - g.wins - g.losses ? ` ${g.count - g.wins - g.losses}分` : ''}`);
+  setStat('game-winrate', percent(g.wins, g.count), '%');
+  setStat('game-record', `${g.wins}勝 ${g.losses}敗${draws ? ` ${draws}分` : ''}`);
 
   const r = data.rings;
-  setStat('ring-count', `${r.count}回`);
-  setStat('ring-firsts', `${r.firsts}回`, `1位率 ${percent(r.firsts, r.count)}`);
-  setStat('ring-avg-rank', avg(r.avg_rank, '位'));
-  setStat('ring-avg-players', avg(r.avg_players, '人'));
+  setStat('ring-count', String(r.count), '回');
+  setStat('ring-firsts', String(r.firsts), '回');
+  setStat('ring-first-rate', percent(r.firsts, r.count), '%');
+  setStat('ring-avg-rank', avg(r.avg_rank), '位');
+  setStat('ring-avg-players', avg(r.avg_players), '人');
 
   // 月間リングごとの順位（確定前のものは暫定）
   document.getElementById('ring-list').replaceChildren(...data.ring_list.map((ring) =>

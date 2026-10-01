@@ -93,8 +93,8 @@ function renderNotice(ranking) {
   }
   const [y, m] = ranking.period.split('-').map(Number);
   notice.replaceChildren(
-    el('p', null, `入力できるのは${y}年${m}月の日付だけです。`),
-    el('p', null, `月末（${monthDay(ranking.date_max)}）で締め、${monthDay(ranking.grace_end)}までは入力・修正できます。それ以降は確定となり、変更できません。`)
+    el('p', null, `${y}年${m}月のリング戦の記録が可能です。`),
+    el('p', null, `${monthDay(ranking.grace_end)}までは入力・修正できます。それ以降は確定となり、変更できません。`)
   );
   notice.hidden = false;
 }

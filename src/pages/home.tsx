@@ -1,9 +1,18 @@
 // ホーム画面（データは home.js がAPIから取得して描画する）
 export const HomePage = () => (
   <>
-    <h1>ランキング</h1>
-
     <p class="admin-only"><span class="admin-badge">管理者モード</span></p>
+
+    {/* ホームにはページの見出し（h1）が無いため、「ランキング一覧」の連続タップで管理者モードを切り替える */}
+    <div class="section-header section-header-first">
+      <h2 class="admin-toggle">ランキング一覧</h2>
+      <button id="delete-mode" type="button" class="btn btn-small admin-only" aria-pressed="false">削除モード</button>
+    </div>
+    <ul id="ranking-list" class="list"></ul>
+    <p id="empty" class="muted" hidden>まだランキングがありません</p>
+
+    {/* ランキングを作るのは一部の部員だけなので、一覧の下に置く */}
+    <h2>ランキング作成</h2>
     <form id="create-form" class="card form-row" novalidate>
       <div class="segmented" role="group" aria-label="ランキングの種類">
         <button type="button" class="segment active" data-kind="monthly" aria-pressed="true">月間リング</button>
@@ -19,12 +28,5 @@ export const HomePage = () => (
       </label>
       <button type="submit" class="btn btn-primary">新規ランキング作成</button>
     </form>
-
-    <div class="section-header">
-      <h2>ランキング一覧</h2>
-      <button id="delete-mode" type="button" class="btn btn-small admin-only" aria-pressed="false">削除モード</button>
-    </div>
-    <ul id="ranking-list" class="list"></ul>
-    <p id="empty" class="muted" hidden>まだランキングがありません</p>
   </>
 )
