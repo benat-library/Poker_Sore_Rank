@@ -48,23 +48,25 @@ async function loadStats() {
   }
 }
 
-// ひも付いていない過去の記録の一覧（管理者モード用。ひも付け先の部員を選ぶ）
+// 取り込んだ過去の記録の、名前ごとのひも付け先（管理者モード用）
 async function loadClaims() {
   try {
-    const [names, users] = await Promise.all([api('GET', '/api/stats/unclaimed'), api('GET', '/api/stats/users')]);
-    document.getElementById('claim-section').hidden = names.length === 0;
-    document.getElementById('claim-list').replaceChildren(...names.map((n) => {
-      const select = el('select', { 'aria-label': `${n.name} のひも付け先` },
-        el('option', { value: '' }, 'ひも付け先を選ぶ'),
+    const [links, users] = await Promise.all([api('GET', '/api/stats/links'), api('GET', '/api/stats/users')]);
+    document.getElementById('claim-section').hidden = links.length === 0;
+    document.getElementById('claim-list').replaceChildren(...links.map((link) => {
+      const select = el('select', { 'aria-label': `${link.name} のひも付け先` },
+        el('option', { value: '' }, '未ひも付け'),
         ...users.map((u) => el('option', { value: u.discord_id }, u.username)));
+      select.value = link.discord_id || '';
       return el('li', { class: 'card history-item' },
         el('div', null,
-          el('div', { class: 'history-user' }, n.name),
-          el('div', { class: 'history-date' }, `${n.count}件 ・ ${formatDay(n.first_day)} 〜 ${formatDay(n.last_day)}`)
+          el('div', { class: 'history-user' }, link.name),
+          el('div', { class: 'history-date' },
+            `${link.count}件 ・ ${formatDay(link.first_day)} 〜 ${formatDay(link.last_day)} ・ 現在：${link.owner || '未ひも付け'}`)
         ),
         el('div', { class: 'claim-row' },
           select,
-          el('button', { type: 'button', class: 'btn btn-small', onclick: () => claim(n, select) }, 'ひも付け')
+          el('button', { type: 'button', class: 'btn btn-small', onclick: () => changeLink(link, select) }, '変更')
         )
       );
     }));
@@ -73,16 +75,17 @@ async function loadClaims() {
   }
 }
 
-async function claim(n, select) {
-  if (!select.value) {
-    showMessage('ひも付け先の部員を選んでください', true);
+async function changeLink(link, select) {
+  const next = select.value || null;
+  if (next === (link.discord_id || null)) {
+    showMessage('ひも付け先が変わっていません', true);
     return;
   }
-  const ownerName = select.selectedOptions[0].textContent;
-  if (!confirm(`「${n.name}」の記録 ${n.count}件を、${ownerName} さんの記録にしますか？`)) return;
+  const nextName = next ? `${select.selectedOptions[0].textContent} さん` : '未ひも付け';
+  if (!confirm(`「${link.name}」の記録 ${link.count}件のひも付け先を、${link.owner || '未ひも付け'} → ${nextName} に変更しますか？`)) return;
   try {
-    const result = await api('POST', '/api/stats/claim', { name: n.name, discord_id: select.value });
-    showMessage(`${result.count}件を ${result.owner} さんの記録にしました`);
+    const result = await api('POST', '/api/stats/link', { name: link.name, discord_id: next });
+    showMessage(result.owner ? `${result.count}件を ${result.owner} さんの記録にしました` : `${result.count}件のひも付けを解除しました`);
     load();
   } catch (e) {
     showMessage(e.message, true);
