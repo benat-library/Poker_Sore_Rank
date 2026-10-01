@@ -84,11 +84,12 @@ auth.get('/callback', async (c) => {
        ON CONFLICT(discord_id) DO UPDATE SET username = excluded.username, global_name = excluded.global_name, last_login_at = excluded.last_login_at`
     ).bind(me.id, displayName, me.global_name, now, now),
     // サーバー上の名前、または Discord のユーザー名と同じ名前で、まだ誰にもひも付いていない過去の記録を、この部員の記録にする
-    c.env.DB.prepare('UPDATE scores SET discord_id = ? WHERE user_name IN (?, ?) AND discord_id IS NULL').bind(
-      me.id,
-      displayName,
-      me.username
-    ),
+    // 管理者モードで手動でひも付けを変更したことのある名前は、自動では触らない（解除した記録が勝手に戻らないように）
+    c.env.DB.prepare(
+      `UPDATE scores SET discord_id = ?
+       WHERE user_name IN (?, ?) AND discord_id IS NULL
+         AND user_name NOT IN (SELECT json_extract(before_json, '$.user_name') FROM audit_logs WHERE action = 'claim')`
+    ).bind(me.id, displayName, me.username),
   ])
   await createSession(c, me.id)
   return c.redirect('/')
