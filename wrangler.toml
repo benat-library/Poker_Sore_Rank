@@ -8,3 +8,7 @@ binding = "DB"
 database_name = "poker-score-db"
 database_id = "c122e7af-19cc-40c4-af20-99006330fea1"
 migrations_dir = "migrations"
+
+# 静的ファイル（CSS・ブラウザ用JS）の配信設定
+[assets]
+directory = "public"

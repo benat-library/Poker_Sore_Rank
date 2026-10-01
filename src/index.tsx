@@ -1,19 +1,25 @@
 import { Hono } from 'hono'
-
-// Cloudflare から渡される環境（DBや環境変数）の型
-type Bindings = {
-  DB: D1Database
-}
+import type { AppEnv } from './types'
+import { errorJson } from './lib/http'
+import rankings from './routes/rankings'
+import { renderer } from './pages/layout'
+import { HomePage } from './pages/home'
 
 // アプリ本体
-const app = new Hono<{ Bindings: Bindings }>()
+const app = new Hono<AppEnv>()
 
-app.get('/', (c) => c.text('Hello Hono!'))
+// API
+app.route('/api/rankings', rankings)
+app.all('/api/*', (c) => errorJson(c, 404, 'APIが見つかりません'))
 
-// DB接続確認用（段階3で削除する）
-app.get('/dbcheck', async (c) => {
-  const row = await c.env.DB.prepare('SELECT COUNT(*) AS count FROM rankings').first<{ count: number }>()
-  return c.json({ rankings: row?.count ?? 0 })
+// 画面
+app.use('*', renderer)
+app.get('/', (c) => c.render(<HomePage />, { title: 'ポーカー部 スコア集計', script: 'home.js' }))
+
+// 想定外のエラー（詳細はログにだけ出し、利用者には出さない）
+app.onError((err, c) => {
+  console.error(err)
+  return errorJson(c, 500, 'サーバーでエラーが発生しました')
 })
 
 export default app
