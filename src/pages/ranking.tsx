@@ -3,10 +3,7 @@ export const RankingPage = ({ id }: { id: number }) => (
   <div id="page" data-ranking-id={String(id)}>
     <header class="page-header">
       <a href="/" class="btn btn-small">← 一覧</a>
-      <div class="header-links">
-        <a href="/guide" class="btn btn-small">使い方</a>
-        <a href={`/ranking/${id}/history`} class="btn btn-small">入力履歴</a>
-      </div>
+      <a href={`/ranking/${id}/history`} class="btn btn-small">入力履歴</a>
     </header>
     <h1>
       <span id="ranking-badge"></span>

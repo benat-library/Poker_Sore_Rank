@@ -3,3 +3,7 @@ node_modules/
 .env
 .wrangler/
 dist/
+# ロゴ画像はリポジトリに含めない（無い場合は文字表記になる）
+/42poker_logo.png
+/public/logo.png
+*:Zone.Identifier

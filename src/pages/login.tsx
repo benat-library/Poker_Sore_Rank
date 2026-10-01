@@ -6,7 +6,7 @@ const ERRORS: Record<string, string> = {
 
 export const LoginPage = ({ error }: { error?: string }) => (
   <div class="login">
-    <h1>ポーカー部 スコア集計</h1>
+    <h1>ログイン</h1>
     <div class="card form-row">
       {error && ERRORS[error] && <p class="login-error">{ERRORS[error]}</p>}
       <a href="/auth/login" class="btn btn-discord">

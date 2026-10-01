@@ -1,13 +1,7 @@
 // ホーム画面（データは home.js がAPIから取得して描画する）
 export const HomePage = () => (
   <>
-    <header class="page-header">
-      <h1>ポーカー部 スコア集計</h1>
-      <div class="header-links">
-        <a href="/guide" class="btn btn-small">使い方</a>
-        <a href="/me" class="btn btn-small">マイページ</a>
-      </div>
-    </header>
+    <h1>ランキング</h1>
 
     <p class="admin-only"><span class="admin-badge">管理者モード</span></p>
     <form id="create-form" class="card form-row" novalidate>

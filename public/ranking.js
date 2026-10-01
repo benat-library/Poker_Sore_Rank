@@ -38,7 +38,7 @@ async function loadSummary() {
     const rows = data.rows.map((row, i) => {
       if (i === 0 || row.total !== data.rows[i - 1].total) rank = i + 1;
       return el('tr', null,
-        el('td', { class: 'col-rank' }, rank),
+        el('td', { class: 'col-rank' }, el('span', { class: rank <= 3 ? `rank-chip rank-${rank}` : 'rank-chip' }, rank)),
         el('td', { class: 'col-name' },
           el('button', { type: 'button', class: 'name-btn', onclick: () => toggleHighlight(row.player_key) }, row.user_name)),
         el('td', { class: `col-num ${amountClass(row.total)}` }, formatAmount(row.total)),

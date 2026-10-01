@@ -9,9 +9,6 @@ const Stat = ({ id, label, wide }: { id: string; label: string; wide?: boolean }
 
 export const MyPage = () => (
   <>
-    <header class="page-header">
-      <a href="/" class="btn btn-small">← ホーム</a>
-    </header>
     <h1>マイページ</h1>
     <p class="muted">
       <strong id="player-name"></strong> さんの成績

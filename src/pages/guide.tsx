@@ -4,9 +4,6 @@ import { GRACE_DAYS } from '../lib/period'
 // 説明書ページ（ルールの数値はコードの設定値をそのまま表示する）
 export const GuidePage = () => (
   <>
-    <header class="page-header">
-      <a href="/" class="btn btn-small">← ホーム</a>
-    </header>
     <h1>使い方</h1>
 
     <section class="card guide">
