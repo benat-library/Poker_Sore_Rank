@@ -1,7 +1,7 @@
 import type { Context } from 'hono'
 
 // エラーを { error: 理由 } の形で返す
-export function errorJson(c: Context, status: 400 | 401 | 404 | 500, message: string) {
+export function errorJson(c: Context, status: 400 | 401 | 403 | 404 | 500, message: string) {
   return c.json({ error: message }, status)
 }
 

@@ -13,6 +13,11 @@ async function request(method, path, body) {
   } catch {
     throw new Error('通信できませんでした。電波の状態を確認してください');
   }
+  if (res.status === 401) {
+    // ログインが切れている場合はログイン画面へ
+    location.href = '/login';
+    throw new Error('ログインしてください');
+  }
   if (!res.ok) {
     let data = null;
     try {
@@ -95,8 +100,8 @@ function storageSet(key, value) {
   }
 }
 
-// 入力したユーザー名の保存先キー
-const USER_NAME_KEY = 'poker.userName';
+// ログイン中の部員（サーバーが body の data 属性に入れている）
+const me = { id: document.body.dataset.userId || '', name: document.body.dataset.userName || '' };
 
 // 端末の時刻帯での今日の日付（YYYY-MM-DD）
 function todayString() {
@@ -171,3 +176,25 @@ function scoreFromChips(rule, finalChips, rebuys) {
 function chipFormula(rule, finalChips, rebuys) {
   return `（${finalChips} − 初期${rule.start}${rebuys ? ` − Rebuy ${rule.rebuy}×${rebuys}` : ''}）`;
 }
+
+// ---- 管理者モード（ページの見出しを3秒以内に5回タップで切り替え） ----
+const ADMIN_KEY = 'poker.admin';
+function isAdminMode() {
+  return storageGet(ADMIN_KEY) === '1';
+}
+function applyAdminMode() {
+  document.body.classList.toggle('admin-mode', isAdminMode());
+  document.dispatchEvent(new Event('adminmodechange'));
+}
+let adminTaps = [];
+document.addEventListener('click', (event) => {
+  if (!event.target.closest('main h1')) return;
+  const now = Date.now();
+  adminTaps = adminTaps.filter((t) => now - t < 3000).concat(now);
+  if (adminTaps.length < 5) return;
+  adminTaps = [];
+  storageSet(ADMIN_KEY, isAdminMode() ? '0' : '1');
+  applyAdminMode();
+  showMessage(isAdminMode() ? '管理者モードをオンにしました' : '管理者モードをオフにしました');
+});
+applyAdminMode();

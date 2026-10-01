@@ -2,7 +2,6 @@
 
 const rankingId = currentRankingId();
 const form = document.getElementById('score-form');
-const userNameInput = document.getElementById('user-name');
 const amountInput = document.getElementById('amount');
 const playedOnInput = document.getElementById('played-on');
 const signButtons = document.querySelectorAll('.sign-btn');
@@ -41,7 +40,7 @@ async function loadSummary() {
       return el('tr', null,
         el('td', { class: 'col-rank' }, rank),
         el('td', { class: 'col-name' },
-          el('button', { type: 'button', class: 'name-btn', onclick: () => toggleHighlight(row.user_name) }, row.user_name)),
+          el('button', { type: 'button', class: 'name-btn', onclick: () => toggleHighlight(row.player_key) }, row.user_name)),
         el('td', { class: `col-num ${amountClass(row.total)}` }, formatAmount(row.total)),
         el('td', { class: 'col-num' }, row.days)
       );
@@ -50,14 +49,11 @@ async function loadSummary() {
     document.getElementById('empty').hidden = rows.length > 0;
 
     // グラフ：上位5人と自分を色付きにする（自分は常に1色目）
-    const myName = userNameInput.value.trim();
-    const names = data.rows.map((r) => r.user_name);
-    coloredNames = [
-      ...(names.includes(myName) ? [myName] : []),
-      ...names.filter((n) => n !== myName).slice(0, names.includes(myName) ? 5 : 6),
-    ];
+    const keys = data.rows.map((r) => r.player_key);
+    const mine = keys.includes(me.id);
+    coloredNames = [...(mine ? [me.id] : []), ...keys.filter((k) => k !== me.id).slice(0, mine ? 5 : 6)];
     chartData = buildCumulativeSeries(scores);
-    if (highlighted && !names.includes(highlighted)) highlighted = null;
+    if (highlighted && !keys.includes(highlighted)) highlighted = null;
     drawChart();
   } catch (e) {
     document.getElementById('ranking-name').textContent = '';
@@ -142,9 +138,8 @@ function setSign(value) {
 }
 signButtons.forEach((btn) => btn.addEventListener('click', () => setSign(Number(btn.dataset.sign))));
 
-// ユーザー名は端末に保存し、次回から自動で入れておく
-userNameInput.value = storageGet(USER_NAME_KEY) || '';
-userNameInput.addEventListener('input', () => storageSet(USER_NAME_KEY, userNameInput.value.trim()));
+// 入力者はログイン中の本人
+document.getElementById('input-user-name').textContent = me.name;
 
 keepDigitsOnly(amountInput);
 
@@ -208,7 +203,7 @@ form.addEventListener('submit', async (event) => {
     input.focus();
     return;
   }
-  const body = { user_name: userNameInput.value, played_on: playedOnInput.value };
+  const body = { played_on: playedOnInput.value };
   if (chipRule) {
     body.final_chips = Number(finalChipsInput.value);
     body.rebuys = currentRebuys();

@@ -29,12 +29,14 @@ function shortDate(date) {
 }
 
 // スコア一覧から、人ごとの累計の推移を作る
-// 戻り値：{ dates: 全員分の日付（昇順）, series: [{ name, points: [{ date, amount, cumulative }] }] }
+// 戻り値：{ dates: 全員分の日付（昇順）, series: [{ name: 人の判定キー, label: 表示名, points: [{ date, amount, cumulative }] }] }
 function buildCumulativeSeries(scores) {
   const byUser = new Map();
+  const labels = new Map();
   scores.forEach((s) => {
-    if (!byUser.has(s.user_name)) byUser.set(s.user_name, new Map());
-    const days = byUser.get(s.user_name);
+    if (!byUser.has(s.player_key)) byUser.set(s.player_key, new Map());
+    labels.set(s.player_key, s.user_name);
+    const days = byUser.get(s.player_key);
     days.set(s.played_on, (days.get(s.played_on) || 0) + s.amount);
   });
   const dates = [...new Set(scores.map((s) => s.played_on))].sort();
@@ -43,7 +45,7 @@ function buildCumulativeSeries(scores) {
     const points = [...days.entries()]
       .sort((a, b) => a[0].localeCompare(b[0]))
       .map(([date, amount]) => ({ date, amount, cumulative: (cumulative += amount) }));
-    return { name, points };
+    return { name, label: labels.get(name), points };
   });
   return { dates, series };
 }
@@ -59,8 +61,8 @@ function cumulativeAt(series, date) {
 }
 
 // グラフを描く
-// colored: 色付きにする人の名前（順番に SERIES_COLORS を割り当てる）
-// highlighted: 強調する人の名前（null なら強調なし）
+// colored: 色付きにする人の判定キー（順番に SERIES_COLORS を割り当てる）
+// highlighted: 強調する人の判定キー（null なら強調なし）
 function renderCumulativeChart(container, legendEl, data, colored, highlighted) {
   container.replaceChildren();
   legendEl.replaceChildren();
@@ -68,6 +70,7 @@ function renderCumulativeChart(container, legendEl, data, colored, highlighted) 
   if (dates.length < 2) return;
 
   const colorOf = new Map(colored.map((name, i) => [name, SERIES_COLORS[i]]));
+  const labelOf = new Map(series.map((s) => [s.name, s.label]));
 
   const width = Math.max(container.clientWidth, 280);
   const height = 260;
@@ -134,7 +137,7 @@ function renderCumulativeChart(container, legendEl, data, colored, highlighted) 
       s.points.forEach((p) => chart.append(svg('circle', { cx: x(p.date), cy: y(p.cumulative), r: 3.5, fill: color, class: 'chart-dot', opacity: dimmed ? 0.25 : 1 })));
     }
     const last = s.points[s.points.length - 1];
-    if (prominent && !dimmed) endLabels.push({ name: s.name, color, y: y(last.cumulative) });
+    if (prominent && !dimmed) endLabels.push({ name: s.label, color, y: y(last.cumulative) });
   });
 
   // 色付きの線の右端に名前を付ける（重ならないよう上下にずらす）
@@ -153,7 +156,7 @@ function renderCumulativeChart(container, legendEl, data, colored, highlighted) 
   if (highlighted && !colorOf.has(highlighted)) legendNames.push(highlighted);
   legendNames.forEach((name) => {
     legendEl.append(el('span', { class: 'legend-item' },
-      el('span', { class: 'legend-swatch', style: `background:${styleOf(name).color}` }), name));
+      el('span', { class: 'legend-swatch', style: `background:${styleOf(name).color}` }), labelOf.get(name)));
   });
   if (series.length > legendNames.length) {
     legendEl.append(el('span', { class: 'legend-item' }, el('span', { class: 'legend-swatch', style: `background:${OTHER_COLOR}` }), 'その他'));
@@ -180,7 +183,7 @@ function renderCumulativeChart(container, legendEl, data, colored, highlighted) 
       el('div', { class: 'chart-tooltip-date' }, `${formatDay(date)} 時点の累計`),
       ...rows.map((r) => el('div', { class: 'chart-tooltip-row' },
         el('span', { class: 'legend-swatch', style: `background:${styleOf(r.name).color}` }),
-        el('span', { class: 'chart-tooltip-name' }, r.name),
+        el('span', { class: 'chart-tooltip-name' }, labelOf.get(r.name)),
         el('strong', { class: amountClass(r.value) }, formatAmount(r.value))
       ))
     );

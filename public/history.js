@@ -1,10 +1,9 @@
-// 入力履歴画面：全員の入力を表示し、人で絞り込む。自分の行だけ編集・削除できる
+// 入力履歴画面：全員の入力を表示し、人で絞り込む。自分の行だけ編集・削除できる（管理者モードでは全員分）
 
 const rankingId = currentRankingId();
 const listEl = document.getElementById('history-list');
 const emptyEl = document.getElementById('empty');
 const filterEl = document.getElementById('user-filter');
-const myName = (storageGet(USER_NAME_KEY) || '').trim();
 let allScores = [];
 let ranking = null;
 
@@ -19,7 +18,7 @@ async function load() {
     document.getElementById('ranking-name').textContent = summary.ranking.name;
     document.title = `入力履歴 - ${summary.ranking.name} | ポーカー部`;
     allScores = scores;
-    renderFilter(summary.rows.map((r) => r.user_name));
+    renderFilter(summary.rows);
     render();
   } catch (e) {
     showMessage(e.message, true);
@@ -27,23 +26,24 @@ async function load() {
 }
 
 // 絞り込みの選択肢（自分を先頭に、残りは名前順）
-function renderFilter(names) {
+function renderFilter(players) {
   const current = filterEl.value;
-  const others = names.filter((n) => n !== myName).sort((a, b) => a.localeCompare(b, 'ja'));
-  const options = [el('option', { value: '' }, '全員')];
-  if (myName) options.push(el('option', { value: myName }, `自分（${myName}）`));
-  others.forEach((n) => options.push(el('option', { value: n }, n)));
+  const others = players.filter((p) => p.player_key !== me.id).sort((a, b) => a.user_name.localeCompare(b.user_name, 'ja'));
+  const options = [el('option', { value: '' }, '全員'), el('option', { value: me.id }, `自分（${me.name}）`)];
+  others.forEach((p) => options.push(el('option', { value: p.player_key }, p.user_name)));
   filterEl.replaceChildren(...options);
   // 選択中の人がまだ一覧にいれば選択を保つ
   if ([...filterEl.options].some((o) => o.value === current)) filterEl.value = current;
 }
 filterEl.addEventListener('change', render);
+// 管理者モードを切り替えたら、編集・削除ボタンの表示を変える
+document.addEventListener('adminmodechange', () => { if (ranking) render(); });
 
 // 一覧を描画する
 // 月間リングを全員分表示しているときは、日ごとに区切って全員の合計を出す（ゼロサムなので本来は 0 になる）
 function render() {
   const target = filterEl.value;
-  const rows = target ? allScores.filter((s) => s.user_name === target) : allScores;
+  const rows = target ? allScores.filter((s) => s.player_key === target) : allScores;
   const items = [];
   rows.forEach((score, i) => {
     if (!target && ranking.kind === 'monthly' && (i === 0 || rows[i - 1].played_on !== score.played_on)) {
@@ -69,8 +69,8 @@ function renderDayHeader(date, dayRows) {
 
 // 1行分（表示モード）
 function renderRow(score) {
-  // 自分の行で、確定前のランキングだけ編集・削除できる
-  const isMine = myName !== '' && score.user_name === myName && ranking.status !== 'closed';
+  // 自分の行（管理者モードでは全員の行）で、確定前のランキングだけ編集・削除できる
+  const isMine = (score.player_key === me.id || isAdminMode()) && ranking.status !== 'closed';
   return el('li', { class: 'card history-item' },
     el('div', { class: 'history-main' },
       el('div', null,

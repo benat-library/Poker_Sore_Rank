@@ -11,9 +11,23 @@ import { MyPage } from './pages/me'
 import { GuidePage } from './pages/guide'
 import stats from './routes/stats'
 import { exportCsv } from './routes/export'
+import auth from './routes/auth'
+import { LoginPage } from './pages/login'
+import { requireLogin, sameOriginOnly } from './lib/session'
 
 // アプリ本体
 const app = new Hono<AppEnv>()
+
+// 他のサイトから送られてきた書き込み操作を拒否する
+app.use('*', sameOriginOnly)
+app.use('*', renderer)
+
+// ログイン（ここまではログインしていなくても使える）
+app.route('/auth', auth)
+app.get('/login', (c) => c.render(<LoginPage error={c.req.query('error')} />, { title: 'ログイン | ポーカー部' }))
+
+// ここから下はすべてログインが必要
+app.use('*', requireLogin)
 
 // API
 app.route('/api/rankings', rankings)
@@ -26,7 +40,6 @@ app.all('/api/*', (c) => errorJson(c, 404, 'APIが見つかりません'))
 app.get('/ranking/:id/export', exportCsv)
 
 // 画面
-app.use('*', renderer)
 app.get('/', (c) => c.render(<HomePage />, { title: 'ポーカー部 スコア集計', script: 'home.js' }))
 app.get('/ranking/:id', (c) => {
   const id = parseId(c.req.param('id'))
