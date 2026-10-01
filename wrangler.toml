@@ -1,0 +1,10 @@
+name = "poker-score-rank"
+main = "src/index.tsx"
+compatibility_date = "2025-09-01"
+
+# D1データベースの設定（コードからは c.env.DB として参照する）
+[[d1_databases]]
+binding = "DB"
+database_name = "poker-score-db"
+database_id = "c122e7af-19cc-40c4-af20-99006330fea1"
+migrations_dir = "migrations"
