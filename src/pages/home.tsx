@@ -10,7 +10,7 @@ export const HomePage = () => (
     </header>
 
     <p class="admin-only"><span class="admin-badge">管理者モード</span></p>
-    <form id="create-form" class="card form-row admin-only" novalidate>
+    <form id="create-form" class="card form-row" novalidate>
       <div class="segmented" role="group" aria-label="ランキングの種類">
         <button type="button" class="segment active" data-kind="monthly" aria-pressed="true">月間リング</button>
         <button type="button" class="segment" data-kind="event" aria-pressed="false">その他イベント</button>

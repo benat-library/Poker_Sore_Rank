@@ -51,7 +51,7 @@ export const MyPage = () => (
     </div>
 
     {/* Discord とひも付いていない過去の記録を、自分の記録として登録する */}
-    <section id="claim-section" hidden>
+    <section id="claim-section" class="admin-only" hidden>
       <h2>過去の記録のひも付け</h2>
       <p class="note">
         Discord とまだひも付いていない過去の記録です。昔の名前など、自分の記録があれば「自分の記録にする」を押してください。他の人の記録を選ばないよう注意してください（操作は記録に残ります）。
