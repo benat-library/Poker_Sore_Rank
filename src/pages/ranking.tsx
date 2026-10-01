@@ -68,6 +68,7 @@ export const RankingPage = ({ id }: { id: number }) => (
               <button type="button" id="rebuy-plus" class="stepper-btn" aria-label="Rebuy回数を増やす">＋</button>
             </div>
           </div>
+          <p id="rebuy-note" class="rebuy-note" hidden>Rebuy分、evaluation pointの寄付をお願いします！！</p>
           <div class="score-preview">
             Score <strong id="score-preview">-</strong>
             <span id="score-formula" class="note"></span>

@@ -233,3 +233,4 @@ input[type="month"] {
 .guide-table th:first-child, .guide-table td:first-child { text-align: left; }
 .guide-table th { font-size: 0.8rem; color: #6b7280; font-weight: normal; }
 .guide-table td.plus, .guide-table td.minus { font-weight: bold; }
+.rebuy-note { margin: 0; color: #dc2626; font-size: 0.85rem; font-weight: bold; }

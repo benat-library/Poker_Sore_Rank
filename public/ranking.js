@@ -157,6 +157,7 @@ keepDigitsOnly(rebuysInput);
 // Rebuyにチェックを入れたときだけ回数を入力できる
 rebuyCheck.addEventListener('change', () => {
   document.getElementById('rebuy-row').hidden = !rebuyCheck.checked;
+  document.getElementById('rebuy-note').hidden = !rebuyCheck.checked;
   updatePreview();
 });
 function setRebuys(n) {
@@ -194,6 +195,7 @@ function resetChipFields() {
   rebuyCheck.checked = false;
   rebuysInput.value = '1';
   document.getElementById('rebuy-row').hidden = true;
+  document.getElementById('rebuy-note').hidden = true;
   updatePreview();
 }
 
