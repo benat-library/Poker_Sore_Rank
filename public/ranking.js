@@ -1,4 +1,4 @@
-// ランキング詳細画面：順位表の表示とスコア入力
+// ランキング詳細画面：順位表・推移グラフの表示とスコア入力
 
 const rankingId = currentRankingId();
 const form = document.getElementById('score-form');
@@ -6,32 +6,118 @@ const userNameInput = document.getElementById('user-name');
 const amountInput = document.getElementById('amount');
 const playedOnInput = document.getElementById('played-on');
 const signButtons = document.querySelectorAll('.sign-btn');
+const updateWeekday = attachWeekday(playedOnInput, document.getElementById('played-on-weekday'));
 let sign = 1;
+let rankingName = '';
 
-// 順位表を読み込んで描画する
+// 順位表・グラフ・入力欄を読み込んで描画する
+let chartData = null;
+let coloredNames = [];
+let highlighted = null;
+
 async function loadSummary() {
   try {
-    const data = await api('GET', `/api/rankings/${rankingId}/summary`);
-    document.getElementById('ranking-name').textContent = data.ranking.name;
-    document.title = `${data.ranking.name} | ポーカー部`;
+    const [data, scores] = await Promise.all([
+      api('GET', `/api/rankings/${rankingId}/summary`),
+      api('GET', `/api/rankings/${rankingId}/scores`),
+    ]);
+    const ranking = data.ranking;
+    rankingName = ranking.name;
+    document.getElementById('ranking-name').textContent = ranking.name;
+    document.getElementById('ranking-badge').replaceChildren(statusBadge(ranking));
+    document.title = `${ranking.name} | ポーカー部`;
+    renderNotice(ranking);
+    setupInput(ranking);
 
-    // 合計が同じ人は同順位にする（例：1位, 2位, 2位, 4位）
+    // 合計が同じ人は同順位にする（例：1位, 2位, 2位, 4位）。名前をタップするとグラフで強調する
     let rank = 0;
     const rows = data.rows.map((row, i) => {
       if (i === 0 || row.total !== data.rows[i - 1].total) rank = i + 1;
       return el('tr', null,
         el('td', { class: 'col-rank' }, rank),
-        el('td', { class: 'col-name' }, row.user_name),
+        el('td', { class: 'col-name' },
+          el('button', { type: 'button', class: 'name-btn', onclick: () => toggleHighlight(row.user_name) }, row.user_name)),
         el('td', { class: `col-num ${amountClass(row.total)}` }, formatAmount(row.total)),
         el('td', { class: 'col-num' }, row.days)
       );
     });
     document.getElementById('standings-body').replaceChildren(...rows);
     document.getElementById('empty').hidden = rows.length > 0;
+
+    // グラフ：上位5人と自分を色付きにする（自分は常に1色目）
+    const myName = userNameInput.value.trim();
+    const names = data.rows.map((r) => r.user_name);
+    coloredNames = [
+      ...(names.includes(myName) ? [myName] : []),
+      ...names.filter((n) => n !== myName).slice(0, names.includes(myName) ? 5 : 6),
+    ];
+    chartData = buildCumulativeSeries(scores);
+    if (highlighted && !names.includes(highlighted)) highlighted = null;
+    drawChart();
   } catch (e) {
     document.getElementById('ranking-name').textContent = '';
     showMessage(e.message, true);
   }
+}
+
+// グラフを描く（記録が1日分だけのときは案内を出す）
+function drawChart() {
+  const section = document.getElementById('chart-section');
+  section.hidden = !chartData || chartData.dates.length === 0;
+  if (section.hidden) return;
+  const enough = chartData.dates.length >= 2;
+  document.getElementById('chart-wait').hidden = enough;
+  document.getElementById('chart-help').hidden = !enough;
+  renderCumulativeChart(document.getElementById('chart'), document.getElementById('chart-legend'), chartData, coloredNames, highlighted);
+}
+
+function toggleHighlight(name) {
+  highlighted = highlighted === name ? null : name;
+  drawChart();
+}
+
+// 画面幅が変わったらグラフを描き直す
+let resizeTimer;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(drawChart, 150);
+});
+
+// 月間リングの注意事項
+function renderNotice(ranking) {
+  const notice = document.getElementById('notice');
+  if (ranking.kind !== 'monthly') {
+    notice.hidden = true;
+    return;
+  }
+  const [y, m] = ranking.period.split('-').map(Number);
+  notice.replaceChildren(
+    el('p', null, `入力できるのは${y}年${m}月の日付だけです。`),
+    el('p', null, `月末（${monthDay(ranking.date_max)}）で締め、${monthDay(ranking.grace_end)}までは入力・修正できます。それ以降は確定となり、変更できません。`)
+  );
+  notice.hidden = false;
+}
+
+// 入力欄の設定（確定済みなら隠す。月間リングは日付をその月に制限する）
+function setupInput(ranking) {
+  const closed = ranking.status === 'closed';
+  document.getElementById('input-section').hidden = closed;
+  document.getElementById('closed-note').hidden = !closed;
+  if (closed) return;
+
+  if (ranking.date_min) {
+    playedOnInput.min = ranking.date_min;
+    playedOnInput.max = ranking.date_max;
+  }
+  // 日付が未入力か範囲外なら、今日（その月を過ぎていれば月末）にする
+  const value = playedOnInput.value;
+  if (!value || (ranking.date_min && (value < ranking.date_min || value > ranking.date_max))) {
+    const today = todayString();
+    playedOnInput.value = ranking.date_max && today > ranking.date_max ? ranking.date_max
+      : ranking.date_min && today < ranking.date_min ? ranking.date_min
+      : today;
+  }
+  updateWeekday();
 }
 
 // 符号の切り替え
@@ -51,7 +137,6 @@ userNameInput.addEventListener('input', () => storageSet(USER_NAME_KEY, userName
 
 keepDigitsOnly(amountInput);
 
-playedOnInput.value = todayString();
 
 // 送信（最終的な検証はサーバー側で行う）
 form.addEventListener('submit', async (event) => {
@@ -81,4 +166,17 @@ form.addEventListener('submit', async (event) => {
   }
 });
 
-startPage(loadSummary);
+// CSVダウンロード
+document.getElementById('export-csv').addEventListener('click', async (event) => {
+  const button = event.currentTarget;
+  button.disabled = true;
+  try {
+    await downloadFile(`/ranking/${rankingId}/export`, `${safeFilename(rankingName)}_${todayString()}.csv`);
+  } catch (e) {
+    showMessage(e.message, true);
+  } finally {
+    button.disabled = false;
+  }
+});
+
+loadSummary();

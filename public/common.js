@@ -1,12 +1,8 @@
 // 全ページ共通の処理
 
-// 合言葉の保存先キー
-const PASSWORD_KEY = 'poker.password';
-
-// APIを呼び出す。失敗時はサーバーが返した日本語の理由を持つ Error を投げる
-async function api(method, path, body) {
-  // 日本語の合言葉もヘッダーで送れるようエンコードする
-  const options = { method, headers: { 'X-App-Password': encodeURIComponent(storageGet(PASSWORD_KEY) || '') } };
+// リクエストを送る。失敗時はサーバーが返した日本語の理由を持つ Error を投げる
+async function request(method, path, body) {
+  const options = { method, headers: {} };
   if (body !== undefined) {
     options.headers['Content-Type'] = 'application/json';
     options.body = JSON.stringify(body);
@@ -17,21 +13,38 @@ async function api(method, path, body) {
   } catch {
     throw new Error('通信できませんでした。電波の状態を確認してください');
   }
-  let data = null;
-  try {
-    data = await res.json();
-  } catch {
-    // JSON以外の応答は無視する
-  }
-  if (res.status === 401) {
-    // 合言葉が違う（変更された）場合は、保存分を消して入力画面に戻す
-    storageRemove(PASSWORD_KEY);
-    showLogin();
-  }
   if (!res.ok) {
+    let data = null;
+    try {
+      data = await res.json();
+    } catch {
+      // JSON以外の応答は無視する
+    }
     throw new Error(data && data.error ? data.error : `エラーが発生しました（${res.status}）`);
   }
-  return data;
+  return res;
+}
+
+// APIを呼び出し、結果のJSONを返す
+async function api(method, path, body) {
+  const res = await request(method, path, body);
+  return res.json();
+}
+
+// ファイルを取得し、指定したファイル名で保存する
+async function downloadFile(path, filename) {
+  const res = await request('GET', path);
+  const url = URL.createObjectURL(await res.blob());
+  const link = el('a', { href: url, download: filename });
+  document.body.append(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 10000);
+}
+
+// ファイル名に使えない文字を置き換える
+function safeFilename(name) {
+  return name.replace(/[\\/:*?"<>|\r\n]/g, '_').trim() || 'ranking';
 }
 
 // 要素を作る。文字列は textContent として入るため、HTMLとして解釈されない（XSS対策）
@@ -81,13 +94,6 @@ function storageSet(key, value) {
     // 保存できなくても動作は続ける
   }
 }
-function storageRemove(key) {
-  try {
-    localStorage.removeItem(key);
-  } catch {
-    // 削除できなくても動作は続ける
-  }
-}
 
 // 入力したユーザー名の保存先キー
 const USER_NAME_KEY = 'poker.userName';
@@ -123,45 +129,35 @@ function keepDigitsOnly(input) {
   });
 }
 
-// ---- 合言葉認証 ----
-
-// 認証後に実行する、ページごとの読み込み処理
-let onUnlocked = null;
-
-// ページの開始。合言葉が保存済みならすぐ読み込み、なければ入力画面を出す
-function startPage(load) {
-  onUnlocked = load;
-  if (storageGet(PASSWORD_KEY)) unlock();
-  else showLogin();
+// ランキングの状態を表す小さなラベル
+function statusBadge(ranking) {
+  if (ranking.kind !== 'monthly') return el('span', { class: 'badge badge-event' }, 'イベント');
+  if (ranking.status === 'open') return el('span', { class: 'badge badge-open' }, '開催中');
+  if (ranking.status === 'grace') return el('span', { class: 'badge badge-grace' }, '締め・入力猶予中');
+  return el('span', { class: 'badge badge-closed' }, '確定');
 }
 
-// 本来の画面を表示して読み込みを始める
-function unlock() {
-  document.body.classList.remove('locked');
-  document.getElementById('login').hidden = true;
-  if (onUnlocked) onUnlocked();
+// 「2026-10-03」を「10月3日」にする
+function monthDay(date) {
+  const [, m, d] = date.split('-').map(Number);
+  return `${m}月${d}日`;
 }
 
-// 合言葉入力画面を表示する
-function showLogin() {
-  document.body.classList.add('locked');
-  document.getElementById('login').hidden = false;
-  document.getElementById('login-password').focus();
+// 「2026-10-01」を「2026/10/01（木）」にする
+const WEEKDAYS = ['日', '月', '火', '水', '木', '金', '土'];
+function weekdayOf(date) {
+  const [y, m, d] = date.split('-').map(Number);
+  return WEEKDAYS[new Date(Date.UTC(y, m - 1, d)).getUTCDay()];
+}
+function formatDay(date) {
+  return `${date.replaceAll('-', '/')}（${weekdayOf(date)}）`;
 }
 
-document.getElementById('login-form').addEventListener('submit', async (event) => {
-  event.preventDefault();
-  const input = document.getElementById('login-password');
-  const button = event.target.querySelector('button');
-  button.disabled = true;
-  storageSet(PASSWORD_KEY, input.value);
-  try {
-    await api('POST', '/api/auth');
-    input.value = '';
-    unlock();
-  } catch (e) {
-    showMessage(e.message, true);
-  } finally {
-    button.disabled = false;
-  }
-});
+// 日付入力欄の横に曜日を表示する（入力欄そのものには曜日を出せないため）
+function attachWeekday(input, label) {
+  const update = () => { label.textContent = /^\d{4}-\d{2}-\d{2}$/.test(input.value) ? `（${weekdayOf(input.value)}）` : ''; };
+  input.addEventListener('input', update);
+  input.addEventListener('change', update);
+  update();
+  return update;
+}

@@ -3,6 +3,9 @@
 const listEl = document.getElementById('ranking-list');
 const emptyEl = document.getElementById('empty');
 const deleteModeBtn = document.getElementById('delete-mode');
+const periodInput = document.getElementById('ranking-period');
+const nameInput = document.getElementById('ranking-name');
+let kind = 'monthly';
 
 // 削除ボタンは誤タップ防止のため、削除モードのときだけ表示する
 deleteModeBtn.addEventListener('click', () => {
@@ -11,6 +14,20 @@ deleteModeBtn.addEventListener('click', () => {
   deleteModeBtn.setAttribute('aria-pressed', String(on));
   deleteModeBtn.textContent = on ? '削除モード終了' : '削除モード';
 });
+
+// 種類の切り替え（月間リングは年月、イベントは名前を入力する）
+document.querySelectorAll('.segment').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    kind = btn.dataset.kind;
+    document.querySelectorAll('.segment').forEach((b) => {
+      b.classList.toggle('active', b === btn);
+      b.setAttribute('aria-pressed', String(b === btn));
+    });
+    document.getElementById('period-field').hidden = kind !== 'monthly';
+    document.getElementById('name-field').hidden = kind !== 'event';
+  });
+});
+periodInput.value = todayString().slice(0, 7);
 
 // 一覧を読み込んで描画する
 async function loadRankings() {
@@ -27,7 +44,7 @@ async function loadRankings() {
 function renderRanking(r) {
   return el('li', { class: 'card list-item' },
     el('a', { class: 'list-link', href: `/ranking/${r.id}` },
-      el('div', { class: 'list-title' }, r.name),
+      el('div', { class: 'list-title' }, statusBadge(r), r.name),
       el('div', { class: 'list-meta' }, `作成日 ${formatDate(r.created_at)} ・ 参加 ${r.participants}人`)
     ),
     el('button', { type: 'button', class: 'btn btn-danger btn-small delete-btn', onclick: () => deleteRanking(r) }, '削除')
@@ -49,13 +66,13 @@ async function deleteRanking(r) {
 // 作成
 document.getElementById('create-form').addEventListener('submit', async (event) => {
   event.preventDefault();
-  const input = document.getElementById('ranking-name');
-  const button = event.target.querySelector('button');
+  const button = event.target.querySelector('button[type="submit"]');
   button.disabled = true;
   try {
-    await api('POST', '/api/rankings', { name: input.value });
-    input.value = '';
-    showMessage('作成しました');
+    const body = kind === 'monthly' ? { kind, period: periodInput.value } : { kind, name: nameInput.value };
+    const created = await api('POST', '/api/rankings', body);
+    nameInput.value = '';
+    showMessage(`「${created.name}」を作成しました`);
     loadRankings();
   } catch (e) {
     showMessage(e.message, true);
@@ -64,4 +81,4 @@ document.getElementById('create-form').addEventListener('submit', async (event) 
   }
 });
 
-startPage(loadRankings);
+loadRankings();

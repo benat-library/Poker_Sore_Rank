@@ -1,4 +1,5 @@
 /* 全体 */
+[hidden] { display: none !important; }
 * { box-sizing: border-box; }
 body {
   margin: 0;
@@ -29,7 +30,7 @@ a { color: #1d4ed8; }
 
 /* フォーム */
 .form-row { display: flex; flex-direction: column; gap: 10px; }
-input[type="text"], input[type="date"], input[type="password"], input[inputmode="numeric"] {
+input[type="text"], input[type="date"], input[inputmode="numeric"] {
   width: 100%;
   min-height: 48px;
   padding: 10px 12px;
@@ -120,7 +121,82 @@ select {
 .history-actions { display: flex; justify-content: flex-end; gap: 8px; }
 .note { font-size: 0.8rem; color: #6b7280; }
 
-/* 合言葉入力画面（未認証の間は本来の画面を隠す） */
-body.locked main { display: none; }
-.login { max-width: 400px; margin: 0 auto; padding: 48px 16px; }
-.login h1 { text-align: center; margin-bottom: 24px; }
+/* ページ上部・下部のボタン */
+.header-links { display: flex; gap: 8px; }
+.page-footer { display: flex; justify-content: center; margin: 32px 0 16px; }
+
+/* マイページの統計 */
+.stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.stat { padding: 12px 14px; }
+.stat-wide { grid-column: 1 / -1; }
+.stat-label { font-size: 0.8rem; color: #6b7280; }
+.stat-value { font-size: 1.4rem; font-weight: bold; font-variant-numeric: tabular-nums; }
+.stat-sub { font-size: 0.85rem; color: #6b7280; }
+
+/* 推移グラフ */
+.chart-card { padding: 12px 8px; }
+.chart { position: relative; touch-action: pan-y; }
+.chart svg { display: block; }
+.chart-grid { stroke: #e5e7eb; stroke-width: 1; }
+.chart-zero { stroke: #9ca3af; stroke-width: 1; }
+.chart-label { font-size: 11px; fill: #6b7280; font-variant-numeric: tabular-nums; }
+.chart-line { fill: none; stroke-linejoin: round; stroke-linecap: round; }
+.chart-crosshair { stroke: #e5e7eb; stroke-width: 1; }
+.chart-tooltip {
+  position: absolute; top: 0; padding: 6px 10px; pointer-events: none;
+  background: #fff; border: 1px solid #d1d5db; border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12); font-size: 0.85rem; color: #222; white-space: nowrap;
+}
+.chart-tooltip-date { color: #6b7280; font-size: 0.8rem; }
+
+/* 種類の切り替え */
+.segmented { display: flex; }
+.segment {
+  flex: 1; min-height: 48px; font-size: 16px; font-weight: bold;
+  border: 1px solid #d1d5db; background: #fff; color: #6b7280; cursor: pointer;
+}
+.segment:first-child { border-radius: 8px 0 0 8px; }
+.segment:last-child { border-radius: 0 8px 8px 0; border-left: none; }
+.segment.active { background: #1d4ed8; border-color: #1d4ed8; color: #fff; }
+input[type="month"] {
+  width: 100%; min-height: 48px; padding: 10px 12px; font-size: 16px;
+  border: 1px solid #d1d5db; border-radius: 8px; background: #fff;
+}
+
+/* 状態ラベル */
+.badge {
+  display: inline-block; margin-right: 6px; padding: 1px 8px; border-radius: 999px;
+  font-size: 0.75rem; font-weight: bold; vertical-align: 2px;
+}
+.badge-open { background: #dbeafe; color: #1e40af; }
+.badge-grace { background: #fef3c7; color: #92400e; }
+.badge-closed { background: #e5e7eb; color: #374151; }
+.badge-event { background: #ede9fe; color: #5b21b6; }
+
+/* 注意事項 */
+.notice { margin: 8px 0 0; padding: 10px 14px; border-radius: 8px; background: #fffbeb; border: 1px solid #fde68a; font-size: 0.85rem; color: #78350f; }
+.notice p { margin: 0; }
+.notice p + p { margin-top: 4px; }
+
+/* 順位表の名前（タップでグラフの線を強調） */
+.name-btn {
+  padding: 0; border: none; background: none; font: inherit; color: inherit;
+  text-align: left; cursor: pointer; text-decoration: underline dotted #9ca3af; text-underline-offset: 3px;
+}
+
+/* 複数人の推移グラフ */
+.chart-legend { display: flex; flex-wrap: wrap; gap: 4px 12px; padding: 0 8px 8px; font-size: 0.8rem; color: #374151; }
+.legend-item { display: inline-flex; align-items: center; gap: 4px; }
+.legend-swatch { display: inline-block; width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+.chart-end-label { font-size: 11px; fill: #374151; }
+.chart-tooltip-row { display: flex; align-items: center; gap: 6px; }
+.chart-tooltip-name { flex: 1; }
+.chart-help { padding: 8px 8px 0; margin: 0; }
+
+/* マイページの月間リング一覧 */
+.ring-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+
+/* 日付と曜日 */
+.date-row { display: flex; align-items: center; gap: 8px; }
+.date-row input { flex: 1; min-width: 0; }
+.weekday { flex-shrink: 0; min-width: 2.5em; font-size: 1rem; color: #222; }

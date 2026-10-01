@@ -6,6 +6,7 @@ const emptyEl = document.getElementById('empty');
 const filterEl = document.getElementById('user-filter');
 const myName = (storageGet(USER_NAME_KEY) || '').trim();
 let allScores = [];
+let ranking = null;
 
 // データを読み込む（ランキング名・参加者一覧と、全スコア）
 async function load() {
@@ -14,6 +15,7 @@ async function load() {
       api('GET', `/api/rankings/${rankingId}/summary`),
       api('GET', `/api/rankings/${rankingId}/scores`),
     ]);
+    ranking = summary.ranking;
     document.getElementById('ranking-name').textContent = summary.ranking.name;
     document.title = `入力履歴 - ${summary.ranking.name} | ポーカー部`;
     allScores = scores;
@@ -47,11 +49,12 @@ function render() {
 
 // 1行分（表示モード）
 function renderRow(score) {
-  const isMine = myName !== '' && score.user_name === myName;
+  // 自分の行で、確定前のランキングだけ編集・削除できる
+  const isMine = myName !== '' && score.user_name === myName && ranking.status !== 'closed';
   return el('li', { class: 'card history-item' },
     el('div', { class: 'history-main' },
       el('div', null,
-        el('div', { class: 'history-date' }, score.played_on.replaceAll('-', '/')),
+        el('div', { class: 'history-date' }, formatDay(score.played_on)),
         el('div', { class: 'history-user' }, score.user_name)
       ),
       el('div', { class: `history-amount ${amountClass(score.amount)}` }, formatAmount(score.amount))
@@ -84,11 +87,16 @@ function startEdit(item, score) {
   keepDigitsOnly(amountInput);
   const dateInput = el('input', { type: 'date', 'aria-label': '日付' });
   dateInput.value = score.played_on;
+  const weekdayLabel = el('span', { class: 'weekday' });
+  if (ranking.date_min) {
+    dateInput.min = ranking.date_min;
+    dateInput.max = ranking.date_max;
+  }
 
   const form = el('form', { class: 'form-row', novalidate: '' },
     el('div', { class: 'history-user' }, score.user_name),
     el('div', { class: 'amount-row' }, el('div', { class: 'sign-toggle' }, plusBtn, minusBtn), amountInput),
-    dateInput,
+    el('div', { class: 'date-row' }, dateInput, weekdayLabel),
     el('div', { class: 'history-actions' },
       el('button', { type: 'button', class: 'btn btn-small', onclick: render }, 'キャンセル'),
       el('button', { type: 'submit', class: 'btn btn-small btn-primary' }, '保存')
@@ -108,13 +116,14 @@ function startEdit(item, score) {
       showMessage(e.message, true);
     }
   });
+  attachWeekday(dateInput, weekdayLabel);
   item.replaceChildren(form);
   amountInput.focus();
 }
 
 // 削除（確認ダイアログを挟む）
 async function deleteScore(score) {
-  if (!confirm(`${score.played_on.replaceAll('-', '/')} の ${formatAmount(score.amount)} を削除しますか？`)) return;
+  if (!confirm(`${formatDay(score.played_on)} の ${formatAmount(score.amount)} を削除しますか？`)) return;
   try {
     await api('DELETE', `/api/scores/${score.id}`);
     showMessage('削除しました');
@@ -124,4 +133,4 @@ async function deleteScore(score) {
   }
 }
 
-startPage(load);
+load();

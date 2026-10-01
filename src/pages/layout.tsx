@@ -1,9 +1,9 @@
 import { jsxRenderer } from 'hono/jsx-renderer'
 
-// c.render() に渡す追加情報（ページタイトルと、読み込むページ別スクリプト）
+// c.render() に渡す追加情報（ページタイトルと、読み込むページ別スクリプト。複数可）
 declare module 'hono' {
   interface ContextRenderer {
-    (content: string | Promise<string>, props: { title: string; script?: string }): Response | Promise<Response>
+    (content: string | Promise<string>, props: { title: string; script?: string | string[] }): Response | Promise<Response>
   }
 }
 
@@ -18,21 +18,12 @@ export const renderer = jsxRenderer(
         <title>{title}</title>
         <link rel="stylesheet" href="/style.css" />
         <script src="/common.js" defer></script>
-        {script && <script src={`/${script}`} defer></script>}
+        {[script ?? []].flat().map((src) => (
+          <script src={`/${src}`} defer></script>
+        ))}
       </head>
-      <body class="locked">
+      <body>
         <div id="message" class="message" hidden></div>
-        {/* 合言葉入力画面（未認証のときだけ表示する） */}
-        <section id="login" class="login" hidden>
-          <h1>ポーカー部 スコア集計</h1>
-          <form id="login-form" class="card form-row">
-            <label>
-              合言葉
-              <input id="login-password" type="password" autocomplete="current-password" required />
-            </label>
-            <button type="submit" class="btn btn-primary">入る</button>
-          </form>
-        </section>
         <main>{children}</main>
       </body>
     </html>

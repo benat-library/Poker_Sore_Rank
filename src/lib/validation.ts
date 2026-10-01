@@ -43,3 +43,19 @@ export function validatePlayedOn(input: unknown): Result<string> {
   }
   return { ok: true, value: input }
 }
+
+// ランキングの種類
+export function validateKind(input: unknown): Result<'monthly' | 'event'> {
+  if (input === 'monthly' || input === 'event') return { ok: true, value: input }
+  return { ok: false, error: 'ランキングの種類を選んでください' }
+}
+
+// 年月：YYYY-MM 形式で、2000年〜2100年の範囲
+export function validatePeriod(input: unknown): Result<string> {
+  if (typeof input !== 'string' || !/^\d{4}-\d{2}$/.test(input)) {
+    return { ok: false, error: '年月は YYYY-MM 形式で入力してください' }
+  }
+  const [y, m] = input.split('-').map(Number)
+  if (y < 2000 || y > 2100 || m < 1 || m > 12) return { ok: false, error: '存在しない年月です' }
+  return { ok: true, value: input }
+}

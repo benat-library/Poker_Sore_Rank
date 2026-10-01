@@ -2,13 +2,23 @@ import { Hono } from 'hono'
 import type { AppEnv } from '../types'
 import { errorJson, parseId, readJson } from '../lib/http'
 import { validateAmount, validatePlayedOn, validateUserName } from '../lib/validation'
+import { checkWritable, type RankingInfo } from '../lib/period'
+import { withStatus } from './rankings'
 
 // ランキング配下のスコアAPI（/api/rankings/:id/...）
 export const rankingScores = new Hono<AppEnv>()
 
-// ランキングが存在するか確認し、存在すれば名前を返す
+// ランキングが存在するか確認し、存在すれば種類・年月も含めて返す
 async function findRanking(db: D1Database, id: number) {
-  return db.prepare('SELECT id, name FROM rankings WHERE id = ?').bind(id).first<{ id: number; name: string }>()
+  return db.prepare('SELECT id, name, kind, period FROM rankings WHERE id = ?').bind(id).first<RankingInfo>()
+}
+
+// スコアが属するランキングを返す
+async function findRankingOfScore(db: D1Database, scoreId: number) {
+  return db
+    .prepare('SELECT r.id, r.name, r.kind, r.period FROM scores s JOIN rankings r ON r.id = s.ranking_id WHERE s.id = ?')
+    .bind(scoreId)
+    .first<RankingInfo>()
 }
 
 // スコア一覧（新しい順）。?user_name= を付けるとその人の分だけ返す
@@ -44,7 +54,7 @@ rankingScores.get('/:id/summary', async (c) => {
   )
     .bind(id)
     .all()
-  return c.json({ ranking, rows: results })
+  return c.json({ ranking: withStatus(ranking), rows: results })
 })
 
 // スコア登録（同じ人・同じ日の入力がすでにあれば上書きする）
@@ -62,7 +72,10 @@ rankingScores.post('/:id/scores', async (c) => {
   const playedOn = validatePlayedOn(body.played_on)
   if (!playedOn.ok) return errorJson(c, 400, playedOn.error)
 
-  if (!(await findRanking(c.env.DB, id))) return errorJson(c, 404, 'ランキングが見つかりません')
+  const ranking = await findRanking(c.env.DB, id)
+  if (!ranking) return errorJson(c, 404, 'ランキングが見つかりません')
+  const notWritable = checkWritable(ranking, playedOn.value)
+  if (notWritable) return errorJson(c, 400, notWritable)
 
   const createdAt = new Date().toISOString()
   // 同日の既存分の削除と新規登録を1つのトランザクションで行う（discord_id は第1版では常に NULL）
@@ -108,6 +121,11 @@ scores.put('/:id', async (c) => {
   const playedOn = validatePlayedOn(body.played_on)
   if (!playedOn.ok) return errorJson(c, 400, playedOn.error)
 
+  const ranking = await findRankingOfScore(c.env.DB, id)
+  if (!ranking) return errorJson(c, 404, 'スコアが見つかりません')
+  const notWritable = checkWritable(ranking, playedOn.value)
+  if (notWritable) return errorJson(c, 400, notWritable)
+
   // 日付を変えた結果、同じ人・同じ日の入力が2件にならないようにする
   const duplicate = await c.env.DB.prepare(
     `SELECT other.id FROM scores AS target
@@ -133,6 +151,11 @@ scores.put('/:id', async (c) => {
 scores.delete('/:id', async (c) => {
   const id = parseId(c.req.param('id'))
   if (id === null) return errorJson(c, 400, 'スコアIDが正しくありません')
+
+  const ranking = await findRankingOfScore(c.env.DB, id)
+  if (!ranking) return errorJson(c, 404, 'スコアが見つかりません')
+  const notWritable = checkWritable(ranking, null)
+  if (notWritable) return errorJson(c, 400, notWritable)
 
   const result = await c.env.DB.prepare('DELETE FROM scores WHERE id = ?').bind(id).run()
   if (result.meta.changes === 0) return errorJson(c, 404, 'スコアが見つかりません')
