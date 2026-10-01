@@ -3,6 +3,7 @@ import type { AppEnv } from '../types'
 import { errorJson, parseId, readJson } from '../lib/http'
 import { validateKind, validatePeriod, validateRankingName } from '../lib/validation'
 import { graceEndOf, lastDayOf, monthlyTitle, statusOf, todayJst, type RankingInfo } from '../lib/period'
+import { REBUY_CHIPS, START_CHIPS } from '../lib/rules'
 
 // ランキング関連のAPI（/api/rankings）
 const rankings = new Hono<AppEnv>()
@@ -17,6 +18,8 @@ export function withStatus<T extends RankingInfo>(ranking: T, today = todayJst()
     date_min: isMonthly ? `${ranking.period}-01` : null,
     date_max: isMonthly ? lastDayOf(ranking.period!) : null,
     grace_end: isMonthly ? graceEndOf(ranking.period!) : null,
+    // 月間リングのチップのルール（画面でScoreを計算して見せるために使う）
+    chips: isMonthly ? { start: START_CHIPS, rebuy: REBUY_CHIPS } : null,
   }
 }
 

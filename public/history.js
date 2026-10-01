@@ -40,11 +40,31 @@ function renderFilter(names) {
 filterEl.addEventListener('change', render);
 
 // 一覧を描画する
+// 月間リングを全員分表示しているときは、日ごとに区切って全員の合計を出す（ゼロサムなので本来は 0 になる）
 function render() {
   const target = filterEl.value;
   const rows = target ? allScores.filter((s) => s.user_name === target) : allScores;
-  listEl.replaceChildren(...rows.map(renderRow));
+  const items = [];
+  rows.forEach((score, i) => {
+    if (!target && ranking.kind === 'monthly' && (i === 0 || rows[i - 1].played_on !== score.played_on)) {
+      items.push(renderDayHeader(score.played_on, rows.filter((r) => r.played_on === score.played_on)));
+    }
+    items.push(renderRow(score));
+  });
+  listEl.replaceChildren(...items);
   emptyEl.hidden = rows.length > 0;
+}
+
+// 日ごとの見出し（人数と全員の合計）
+function renderDayHeader(date, dayRows) {
+  const total = dayRows.reduce((sum, r) => sum + r.amount, 0);
+  return el('li', { class: 'day-header' },
+    el('div', { class: 'day-header-main' },
+      el('span', { class: 'day-header-date' }, formatDay(date)),
+      el('span', null, `${dayRows.length}人 ・ 合計 `, el('strong', { class: total === 0 ? '' : 'minus' }, formatAmount(total)))
+    ),
+    total === 0 ? null : el('div', { class: 'day-header-warning' }, '⚠ 合計が0になっていません。入力漏れや入力ミスがないか確認してください')
+  );
 }
 
 // 1行分（表示モード）
@@ -55,7 +75,10 @@ function renderRow(score) {
     el('div', { class: 'history-main' },
       el('div', null,
         el('div', { class: 'history-date' }, formatDay(score.played_on)),
-        el('div', { class: 'history-user' }, score.user_name)
+        el('div', { class: 'history-user' }, score.user_name),
+        score.final_chips !== null && score.final_chips !== undefined
+          ? el('div', { class: 'history-date' }, `最終 ${score.final_chips}チップ${score.rebuys ? ` ・ Rebuy ${score.rebuys}回` : ''}`)
+          : null
       ),
       el('div', { class: `history-amount ${amountClass(score.amount)}` }, formatAmount(score.amount))
     ),
@@ -68,23 +91,18 @@ function renderRow(score) {
   );
 }
 
-// 編集モードに切り替える（Score と日付を変更できる）
-function startEdit(item, score) {
-  let sign = score.amount < 0 ? -1 : 1;
-  const plusBtn = el('button', { type: 'button', class: 'sign-btn', 'data-sign': '1' }, '＋');
-  const minusBtn = el('button', { type: 'button', class: 'sign-btn', 'data-sign': '-1' }, '−');
-  const setSign = (value) => {
-    sign = value;
-    plusBtn.classList.toggle('active', value === 1);
-    minusBtn.classList.toggle('active', value === -1);
-  };
-  plusBtn.addEventListener('click', () => setSign(1));
-  minusBtn.addEventListener('click', () => setSign(-1));
-  setSign(sign);
+// 最終チップ数とRebuy回数が記録されていないデータ（過去の取り込み分）は、Scoreから推定して編集欄に入れる
+function guessChips(score, rule) {
+  if (score.final_chips !== null && score.final_chips !== undefined) {
+    return { finalChips: score.final_chips, rebuys: score.rebuys || 0 };
+  }
+  const rebuys = score.amount >= -rule.start ? 0 : Math.ceil((-rule.start - score.amount) / rule.rebuy);
+  return { finalChips: score.amount + rule.start + rule.rebuy * rebuys, rebuys };
+}
 
-  const amountInput = el('input', { type: 'text', inputmode: 'numeric', pattern: '[0-9]*', autocomplete: 'off', 'aria-label': 'Score' });
-  amountInput.value = String(Math.abs(score.amount));
-  keepDigitsOnly(amountInput);
+// 編集モードに切り替える（月間リングは最終チップ数・Rebuy回数、イベントはScore。どちらも日付を変更できる）
+function startEdit(item, score) {
+  const rule = ranking.chips;
   const dateInput = el('input', { type: 'date', 'aria-label': '日付' });
   dateInput.value = score.played_on;
   const weekdayLabel = el('span', { class: 'weekday' });
@@ -93,9 +111,60 @@ function startEdit(item, score) {
     dateInput.max = ranking.date_max;
   }
 
+  let fields;
+  let readValues;
+  if (rule) {
+    const guess = guessChips(score, rule);
+    const chipsInput = el('input', { type: 'text', inputmode: 'numeric', pattern: '[0-9]*', autocomplete: 'off', 'aria-label': '最終チップ数' });
+    chipsInput.value = String(guess.finalChips);
+    keepDigitsOnly(chipsInput);
+    const rebuysInput = el('input', { type: 'text', inputmode: 'numeric', pattern: '[0-9]*', 'aria-label': 'Rebuy回数' });
+    rebuysInput.value = String(guess.rebuys);
+    keepDigitsOnly(rebuysInput);
+    const preview = el('strong');
+    const updatePreview = () => {
+      if (chipsInput.value === '') {
+        preview.textContent = '-';
+        preview.className = '';
+        return;
+      }
+      const value = scoreFromChips(rule, Number(chipsInput.value), Number(rebuysInput.value || 0));
+      preview.textContent = formatAmount(value);
+      preview.className = amountClass(value);
+    };
+    chipsInput.addEventListener('input', updatePreview);
+    rebuysInput.addEventListener('input', updatePreview);
+    updatePreview();
+    fields = [
+      el('label', null, '最終チップ数', chipsInput),
+      el('label', null, 'Rebuy回数（しなかった場合は0）', rebuysInput),
+      el('div', { class: 'score-preview' }, 'Score ', preview),
+    ];
+    readValues = () => (chipsInput.value === ''
+      ? null
+      : { final_chips: Number(chipsInput.value), rebuys: Number(rebuysInput.value || 0) });
+  } else {
+    let sign = score.amount < 0 ? -1 : 1;
+    const plusBtn = el('button', { type: 'button', class: 'sign-btn', 'data-sign': '1' }, '＋');
+    const minusBtn = el('button', { type: 'button', class: 'sign-btn', 'data-sign': '-1' }, '−');
+    const setSign = (value) => {
+      sign = value;
+      plusBtn.classList.toggle('active', value === 1);
+      minusBtn.classList.toggle('active', value === -1);
+    };
+    plusBtn.addEventListener('click', () => setSign(1));
+    minusBtn.addEventListener('click', () => setSign(-1));
+    setSign(sign);
+    const amountInput = el('input', { type: 'text', inputmode: 'numeric', pattern: '[0-9]*', autocomplete: 'off', 'aria-label': 'Score' });
+    amountInput.value = String(Math.abs(score.amount));
+    keepDigitsOnly(amountInput);
+    fields = [el('div', { class: 'amount-row' }, el('div', { class: 'sign-toggle' }, plusBtn, minusBtn), amountInput)];
+    readValues = () => (amountInput.value === '' ? null : { amount: sign * Number(amountInput.value) });
+  }
+
   const form = el('form', { class: 'form-row', novalidate: '' },
     el('div', { class: 'history-user' }, score.user_name),
-    el('div', { class: 'amount-row' }, el('div', { class: 'sign-toggle' }, plusBtn, minusBtn), amountInput),
+    ...fields,
     el('div', { class: 'date-row' }, dateInput, weekdayLabel),
     el('div', { class: 'history-actions' },
       el('button', { type: 'button', class: 'btn btn-small', onclick: render }, 'キャンセル'),
@@ -104,12 +173,13 @@ function startEdit(item, score) {
   );
   form.addEventListener('submit', async (event) => {
     event.preventDefault();
-    if (amountInput.value === '') {
-      showMessage('Scoreを入力してください', true);
+    const values = readValues();
+    if (!values) {
+      showMessage(rule ? '最終チップ数を入力してください' : 'Scoreを入力してください', true);
       return;
     }
     try {
-      await api('PUT', `/api/scores/${score.id}`, { amount: sign * Number(amountInput.value), played_on: dateInput.value });
+      await api('PUT', `/api/scores/${score.id}`, { ...values, played_on: dateInput.value });
       showMessage('保存しました');
       load();
     } catch (e) {
@@ -118,7 +188,7 @@ function startEdit(item, score) {
   });
   attachWeekday(dateInput, weekdayLabel);
   item.replaceChildren(form);
-  amountInput.focus();
+  form.querySelector('input').focus();
 }
 
 // 削除（確認ダイアログを挟む）

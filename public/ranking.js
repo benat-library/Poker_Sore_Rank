@@ -7,8 +7,13 @@ const amountInput = document.getElementById('amount');
 const playedOnInput = document.getElementById('played-on');
 const signButtons = document.querySelectorAll('.sign-btn');
 const updateWeekday = attachWeekday(playedOnInput, document.getElementById('played-on-weekday'));
+const finalChipsInput = document.getElementById('final-chips');
+const rebuyCheck = document.getElementById('rebuy-check');
+const rebuysInput = document.getElementById('rebuys');
 let sign = 1;
 let rankingName = '';
+// 月間リングのチップのルール（{ start, rebuy }）。イベントは null
+let chipRule = null;
 
 // 順位表・グラフ・入力欄を読み込んで描画する
 let chartData = null;
@@ -105,6 +110,12 @@ function setupInput(ranking) {
   document.getElementById('closed-note').hidden = !closed;
   if (closed) return;
 
+  // 月間リングは最終チップ数とRebuy、イベントはScoreを直接入力する
+  chipRule = ranking.chips;
+  document.getElementById('chip-fields').hidden = !chipRule;
+  document.getElementById('score-fields').hidden = !!chipRule;
+  updatePreview();
+
   if (ranking.date_min) {
     playedOnInput.min = ranking.date_min;
     playedOnInput.max = ranking.date_max;
@@ -138,26 +149,78 @@ userNameInput.addEventListener('input', () => storageSet(USER_NAME_KEY, userName
 keepDigitsOnly(amountInput);
 
 
+// ---- 月間リングの入力（最終チップ数とRebuy） ----
+
+keepDigitsOnly(finalChipsInput);
+keepDigitsOnly(rebuysInput);
+
+// Rebuyにチェックを入れたときだけ回数を入力できる
+rebuyCheck.addEventListener('change', () => {
+  document.getElementById('rebuy-row').hidden = !rebuyCheck.checked;
+  updatePreview();
+});
+function setRebuys(n) {
+  rebuysInput.value = String(Math.min(Math.max(n, 1), 50));
+  updatePreview();
+}
+document.getElementById('rebuy-minus').addEventListener('click', () => setRebuys(Number(rebuysInput.value || 1) - 1));
+document.getElementById('rebuy-plus').addEventListener('click', () => setRebuys(Number(rebuysInput.value || 0) + 1));
+finalChipsInput.addEventListener('input', updatePreview);
+rebuysInput.addEventListener('input', updatePreview);
+
+// 入力中の内容から計算したScoreを表示する
+function currentRebuys() {
+  return rebuyCheck.checked ? Number(rebuysInput.value || 0) : 0;
+}
+function updatePreview() {
+  const preview = document.getElementById('score-preview');
+  const formula = document.getElementById('score-formula');
+  if (!chipRule || finalChipsInput.value === '') {
+    preview.textContent = '-';
+    preview.className = '';
+    formula.textContent = '';
+    return;
+  }
+  const finalChips = Number(finalChipsInput.value);
+  const rebuys = currentRebuys();
+  const score = scoreFromChips(chipRule, finalChips, rebuys);
+  preview.textContent = formatAmount(score);
+  preview.className = amountClass(score);
+  formula.textContent = chipFormula(chipRule, finalChips, rebuys);
+}
+
+function resetChipFields() {
+  finalChipsInput.value = '';
+  rebuyCheck.checked = false;
+  rebuysInput.value = '1';
+  document.getElementById('rebuy-row').hidden = true;
+  updatePreview();
+}
+
 // 送信（最終的な検証はサーバー側で行う）
 form.addEventListener('submit', async (event) => {
   event.preventDefault();
-  if (amountInput.value === '') {
-    showMessage('Scoreを入力してください', true);
-    amountInput.focus();
+  const input = chipRule ? finalChipsInput : amountInput;
+  if (input.value === '') {
+    showMessage(chipRule ? '最終チップ数を入力してください' : 'Scoreを入力してください', true);
+    input.focus();
     return;
+  }
+  const body = { user_name: userNameInput.value, played_on: playedOnInput.value };
+  if (chipRule) {
+    body.final_chips = Number(finalChipsInput.value);
+    body.rebuys = currentRebuys();
+  } else {
+    body.amount = sign * Number(amountInput.value);
   }
   const button = form.querySelector('button[type="submit"]');
   button.disabled = true;
   try {
-    const amount = sign * Number(amountInput.value);
-    const result = await api('POST', `/api/rankings/${rankingId}/scores`, {
-      user_name: userNameInput.value,
-      amount,
-      played_on: playedOnInput.value,
-    });
-    showMessage(`${formatAmount(amount)} ${result.overwritten ? 'で上書き' : 'を登録'}しました`);
+    const result = await api('POST', `/api/rankings/${rankingId}/scores`, body);
+    showMessage(`${formatAmount(result.amount)} ${result.overwritten ? 'で上書き' : 'を登録'}しました`);
     amountInput.value = '';
     setSign(1);
+    resetChipFields();
     loadSummary();
   } catch (e) {
     showMessage(e.message, true);

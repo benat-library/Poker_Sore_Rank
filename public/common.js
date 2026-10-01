@@ -161,3 +161,13 @@ function attachWeekday(input, label) {
   update();
   return update;
 }
+
+// 月間リングのScore（最終チップ数 − 初期チップ − Rebuy分）
+function scoreFromChips(rule, finalChips, rebuys) {
+  return finalChips - rule.start - rule.rebuy * rebuys;
+}
+
+// Scoreの計算式の説明（例：350 − 200 − Rebuy 200×1）
+function chipFormula(rule, finalChips, rebuys) {
+  return `（${finalChips} − 初期${rule.start}${rebuys ? ` − Rebuy ${rule.rebuy}×${rebuys}` : ''}）`;
+}

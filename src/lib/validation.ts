@@ -59,3 +59,21 @@ export function validatePeriod(input: unknown): Result<string> {
   if (y < 2000 || y > 2100 || m < 1 || m > 12) return { ok: false, error: '存在しない年月です' }
   return { ok: true, value: input }
 }
+
+// 最終チップ数：0以上 1000000 以下の整数
+export function validateFinalChips(input: unknown): Result<number> {
+  if (typeof input !== 'number' || !Number.isInteger(input)) {
+    return { ok: false, error: '最終チップ数は整数で入力してください' }
+  }
+  if (input < 0 || input > 1000000) return { ok: false, error: '最終チップ数は 0 以上 1000000 以下で入力してください' }
+  return { ok: true, value: input }
+}
+
+// Rebuy回数：0以上 50 以下の整数
+export function validateRebuys(input: unknown): Result<number> {
+  if (typeof input !== 'number' || !Number.isInteger(input)) {
+    return { ok: false, error: 'Rebuy回数は整数で入力してください' }
+  }
+  if (input < 0 || input > 50) return { ok: false, error: 'Rebuy回数は 0 以上 50 以下で入力してください' }
+  return { ok: true, value: input }
+}

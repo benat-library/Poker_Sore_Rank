@@ -8,6 +8,7 @@ import { HomePage } from './pages/home'
 import { RankingPage } from './pages/ranking'
 import { HistoryPage } from './pages/history'
 import { MyPage } from './pages/me'
+import { GuidePage } from './pages/guide'
 import stats from './routes/stats'
 import { exportCsv } from './routes/export'
 
@@ -38,6 +39,7 @@ app.get('/ranking/:id/history', (c) => {
   return c.render(<HistoryPage id={id} />, { title: '入力履歴 | ポーカー部', script: 'history.js' })
 })
 app.get('/me', (c) => c.render(<MyPage />, { title: 'マイページ | ポーカー部', script: 'me.js' }))
+app.get('/guide', (c) => c.render(<GuidePage />, { title: '使い方 | ポーカー部' }))
 
 // 想定外のエラー（詳細はログにだけ出し、利用者には出さない）
 app.onError((err, c) => {

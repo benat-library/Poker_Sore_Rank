@@ -1,7 +1,15 @@
 import { Hono } from 'hono'
 import type { AppEnv } from '../types'
 import { errorJson, parseId, readJson } from '../lib/http'
-import { validateAmount, validatePlayedOn, validateUserName } from '../lib/validation'
+import {
+  validateAmount,
+  validateFinalChips,
+  validatePlayedOn,
+  validateRebuys,
+  validateUserName,
+  type Result,
+} from '../lib/validation'
+import { scoreFromChips } from '../lib/rules'
 import { checkWritable, type RankingInfo } from '../lib/period'
 import { withStatus } from './rankings'
 
@@ -21,6 +29,25 @@ async function findRankingOfScore(db: D1Database, scoreId: number) {
     .first<RankingInfo>()
 }
 
+type ScoreValues = { amount: number; final_chips: number | null; rebuys: number | null }
+
+// 入力されたScoreを読み取る
+// 月間リングは最終チップ数とRebuy回数からScoreを計算し、イベントはScoreをそのまま受け取る
+function readScoreValues(body: Record<string, unknown>, ranking: RankingInfo): Result<ScoreValues> {
+  if (ranking.kind === 'monthly') {
+    const finalChips = validateFinalChips(body.final_chips)
+    if (!finalChips.ok) return finalChips
+    const rebuys = validateRebuys(body.rebuys ?? 0)
+    if (!rebuys.ok) return rebuys
+    const amount = validateAmount(scoreFromChips(finalChips.value, rebuys.value))
+    if (!amount.ok) return amount
+    return { ok: true, value: { amount: amount.value, final_chips: finalChips.value, rebuys: rebuys.value } }
+  }
+  const amount = validateAmount(body.amount)
+  if (!amount.ok) return amount
+  return { ok: true, value: { amount: amount.value, final_chips: null, rebuys: null } }
+}
+
 // スコア一覧（新しい順）。?user_name= を付けるとその人の分だけ返す
 rankingScores.get('/:id/scores', async (c) => {
   const id = parseId(c.req.param('id'))
@@ -28,7 +55,7 @@ rankingScores.get('/:id/scores', async (c) => {
   if (!(await findRanking(c.env.DB, id))) return errorJson(c, 404, 'ランキングが見つかりません')
 
   const userName = c.req.query('user_name')
-  const columns = 'id, ranking_id, user_name, amount, played_on, created_at'
+  const columns = 'id, ranking_id, user_name, amount, final_chips, rebuys, played_on, created_at'
   const order = 'ORDER BY played_on DESC, created_at DESC, id DESC'
   const stmt =
     userName === undefined
@@ -65,15 +92,16 @@ rankingScores.post('/:id/scores', async (c) => {
   const body = await readJson(c)
   if (!body) return errorJson(c, 400, 'リクエストの形式が正しくありません')
 
+  const ranking = await findRanking(c.env.DB, id)
+  if (!ranking) return errorJson(c, 404, 'ランキングが見つかりません')
+
   const userName = validateUserName(body.user_name)
   if (!userName.ok) return errorJson(c, 400, userName.error)
-  const amount = validateAmount(body.amount)
-  if (!amount.ok) return errorJson(c, 400, amount.error)
+  const values = readScoreValues(body, ranking)
+  if (!values.ok) return errorJson(c, 400, values.error)
   const playedOn = validatePlayedOn(body.played_on)
   if (!playedOn.ok) return errorJson(c, 400, playedOn.error)
 
-  const ranking = await findRanking(c.env.DB, id)
-  if (!ranking) return errorJson(c, 404, 'ランキングが見つかりません')
   const notWritable = checkWritable(ranking, playedOn.value)
   if (notWritable) return errorJson(c, 400, notWritable)
 
@@ -86,9 +114,9 @@ rankingScores.post('/:id/scores', async (c) => {
       playedOn.value
     ),
     c.env.DB.prepare(
-      `INSERT INTO scores (ranking_id, user_name, discord_id, amount, played_on, created_at)
-       VALUES (?, ?, NULL, ?, ?, ?) RETURNING id`
-    ).bind(id, userName.value, amount.value, playedOn.value, createdAt),
+      `INSERT INTO scores (ranking_id, user_name, discord_id, amount, final_chips, rebuys, played_on, created_at)
+       VALUES (?, ?, NULL, ?, ?, ?, ?, ?) RETURNING id`
+    ).bind(id, userName.value, values.value.amount, values.value.final_chips, values.value.rebuys, playedOn.value, createdAt),
   ])
   const overwritten = deleted.meta.changes > 0
   return c.json(
@@ -96,7 +124,7 @@ rankingScores.post('/:id/scores', async (c) => {
       id: inserted.results[0].id,
       ranking_id: id,
       user_name: userName.value,
-      amount: amount.value,
+      ...values.value,
       played_on: playedOn.value,
       created_at: createdAt,
       overwritten,
@@ -108,7 +136,7 @@ rankingScores.post('/:id/scores', async (c) => {
 // スコア単体のAPI（/api/scores/:id）
 export const scores = new Hono<AppEnv>()
 
-// スコア修正（変更できるのは Score と日付のみ）
+// スコア修正（変更できるのは Score（月間リングは最終チップ数・Rebuy回数）と日付のみ）
 scores.put('/:id', async (c) => {
   const id = parseId(c.req.param('id'))
   if (id === null) return errorJson(c, 400, 'スコアIDが正しくありません')
@@ -116,13 +144,14 @@ scores.put('/:id', async (c) => {
   const body = await readJson(c)
   if (!body) return errorJson(c, 400, 'リクエストの形式が正しくありません')
 
-  const amount = validateAmount(body.amount)
-  if (!amount.ok) return errorJson(c, 400, amount.error)
+  const ranking = await findRankingOfScore(c.env.DB, id)
+  if (!ranking) return errorJson(c, 404, 'スコアが見つかりません')
+
+  const values = readScoreValues(body, ranking)
+  if (!values.ok) return errorJson(c, 400, values.error)
   const playedOn = validatePlayedOn(body.played_on)
   if (!playedOn.ok) return errorJson(c, 400, playedOn.error)
 
-  const ranking = await findRankingOfScore(c.env.DB, id)
-  if (!ranking) return errorJson(c, 404, 'スコアが見つかりません')
   const notWritable = checkWritable(ranking, playedOn.value)
   if (notWritable) return errorJson(c, 400, notWritable)
 
@@ -138,10 +167,10 @@ scores.put('/:id', async (c) => {
   if (duplicate) return errorJson(c, 400, 'その日付にはすでに入力があります。そちらを編集してください')
 
   const row = await c.env.DB.prepare(
-    `UPDATE scores SET amount = ?, played_on = ? WHERE id = ?
-     RETURNING id, ranking_id, user_name, amount, played_on, created_at`
+    `UPDATE scores SET amount = ?, final_chips = ?, rebuys = ?, played_on = ? WHERE id = ?
+     RETURNING id, ranking_id, user_name, amount, final_chips, rebuys, played_on, created_at`
   )
-    .bind(amount.value, playedOn.value, id)
+    .bind(values.value.amount, values.value.final_chips, values.value.rebuys, playedOn.value, id)
     .first()
   if (!row) return errorJson(c, 404, 'スコアが見つかりません')
   return c.json(row)

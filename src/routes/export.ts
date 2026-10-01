@@ -13,7 +13,15 @@ function safeText(text: string): string {
   return /^[=+\-@\t\r]/.test(text) ? `'${text}` : text
 }
 
-type ScoreRow = { id: number; user_name: string; amount: number; played_on: string; created_at: string }
+type ScoreRow = {
+  id: number
+  user_name: string
+  amount: number
+  played_on: string
+  created_at: string
+  final_chips: number | null
+  rebuys: number | null
+}
 
 // ランキングの全スコアをCSV（UTF-8 BOM付き）で返す
 export async function exportCsv(c: Context<AppEnv>) {
@@ -24,15 +32,15 @@ export async function exportCsv(c: Context<AppEnv>) {
   if (!ranking) return errorJson(c, 404, 'ランキングが見つかりません')
 
   const { results } = await c.env.DB.prepare(
-    'SELECT id, user_name, amount, played_on, created_at FROM scores WHERE ranking_id = ? ORDER BY played_on, id'
+    'SELECT id, user_name, amount, played_on, created_at, final_chips, rebuys FROM scores WHERE ranking_id = ? ORDER BY played_on, id'
   )
     .bind(id)
     .all<ScoreRow>()
 
   const lines = [
-    'id,user_name,amount,played_on,created_at',
+    'id,user_name,amount,played_on,created_at,final_chips,rebuys',
     ...results.map((r) =>
-      [r.id, csvField(safeText(r.user_name)), r.amount, r.played_on, r.created_at].join(',')
+      [r.id, csvField(safeText(r.user_name)), r.amount, r.played_on, r.created_at, r.final_chips ?? '', r.rebuys ?? ''].join(',')
     ),
   ]
   // 先頭の ﻿ がBOM（Excelで日本語が文字化けしないようにする）。改行はExcelに合わせて CRLF

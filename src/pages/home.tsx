@@ -3,7 +3,10 @@ export const HomePage = () => (
   <>
     <header class="page-header">
       <h1>ポーカー部 スコア集計</h1>
-      <a href="/me" class="btn btn-small">マイページ</a>
+      <div class="header-links">
+        <a href="/guide" class="btn btn-small">使い方</a>
+        <a href="/me" class="btn btn-small">マイページ</a>
+      </div>
     </header>
 
     <form id="create-form" class="card form-row" novalidate>

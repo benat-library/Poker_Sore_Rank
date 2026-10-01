@@ -3,7 +3,10 @@ export const RankingPage = ({ id }: { id: number }) => (
   <div id="page" data-ranking-id={String(id)}>
     <header class="page-header">
       <a href="/" class="btn btn-small">← 一覧</a>
-      <a href={`/ranking/${id}/history`} class="btn btn-small">入力履歴</a>
+      <div class="header-links">
+        <a href="/guide" class="btn btn-small">使い方</a>
+        <a href={`/ranking/${id}/history`} class="btn btn-small">入力履歴</a>
+      </div>
     </header>
     <h1>
       <span id="ranking-badge"></span>
@@ -47,17 +50,42 @@ export const RankingPage = ({ id }: { id: number }) => (
           <input id="user-name" type="text" maxlength={30} autocomplete="nickname" required />
         </label>
 
-        <div>
+        {/* 月間リング：最終チップ数とRebuy回数を入力し、Scoreは自動で計算する */}
+        <div id="chip-fields" hidden>
+          <label>
+            最終チップ数
+            <input id="final-chips" type="text" inputmode="numeric" pattern="[0-9]*" placeholder="例：350" autocomplete="off" />
+          </label>
+          <label class="check-row">
+            <input id="rebuy-check" type="checkbox" />
+            Rebuyした
+          </label>
+          <div id="rebuy-row" class="stepper-row" hidden>
+            Rebuy回数
+            <div class="stepper">
+              <button type="button" id="rebuy-minus" class="stepper-btn" aria-label="Rebuy回数を減らす">−</button>
+              <input id="rebuys" type="text" inputmode="numeric" pattern="[0-9]*" value="1" aria-label="Rebuy回数" />
+              <button type="button" id="rebuy-plus" class="stepper-btn" aria-label="Rebuy回数を増やす">＋</button>
+            </div>
+          </div>
+          <div class="score-preview">
+            Score <strong id="score-preview">-</strong>
+            <span id="score-formula" class="note"></span>
+          </div>
+        </div>
+
+        {/* イベント：Scoreを直接入力する */}
+        <div id="score-fields" hidden>
           Score
           <div class="amount-row">
             <div class="sign-toggle" role="group" aria-label="符号">
               <button type="button" class="sign-btn active" data-sign="1" aria-pressed="true">＋</button>
               <button type="button" class="sign-btn" data-sign="-1" aria-pressed="false">−</button>
             </div>
-            <input id="amount" type="text" inputmode="numeric" pattern="[0-9]*" placeholder="例：150" autocomplete="off" required />
+            <input id="amount" type="text" inputmode="numeric" pattern="[0-9]*" placeholder="例：150" autocomplete="off" />
           </div>
-          <small class="note">※同じ日に登録したScoreは上書きされます</small>
         </div>
+        <small class="note">※同じ日に登録したScoreは上書きされます</small>
 
         <label>
           日付
