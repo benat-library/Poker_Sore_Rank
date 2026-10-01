@@ -3,9 +3,8 @@ export const HomePage = () => (
   <>
     <p class="admin-only"><span class="admin-badge">管理者モード</span></p>
 
-    {/* ホームにはページの見出し（h1）が無いため、「ランキング一覧」の連続タップで管理者モードを切り替える */}
     <div class="section-header section-header-first">
-      <h2 class="admin-toggle">ランキング一覧</h2>
+      <h2>ランキング一覧</h2>
       <button id="delete-mode" type="button" class="btn btn-small admin-only" aria-pressed="false">削除モード</button>
     </div>
     <ul id="ranking-list" class="list"></ul>

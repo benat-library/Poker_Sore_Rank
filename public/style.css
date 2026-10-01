@@ -333,7 +333,7 @@ input[type="month"] {
 /* 管理者モードでだけ表示する要素 */
 body:not(.admin-mode) .admin-only { display: none !important; }
 .admin-badge { display: inline-block; padding: 2px 10px; border-radius: 999px; background: var(--brand-red); color: #fff; font-size: 0.75rem; font-weight: bold; }
-/* 見出しの連続タップで文字が選択されないようにする */
-main h1 { user-select: none; -webkit-user-select: none; }
+/* 管理者モードを切り替える見出し（連続タップで文字選択やダブルタップ拡大が起きないようにする） */
+.admin-toggle { user-select: none; -webkit-user-select: none; touch-action: manipulation; }
 .claim-row { display: flex; gap: 8px; }
 .claim-row select { flex: 1; min-width: 0; }

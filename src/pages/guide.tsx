@@ -4,7 +4,8 @@ import { GRACE_DAYS } from '../lib/period'
 // 説明書ページ（ルールの数値はコードの設定値をそのまま表示する）
 export const GuidePage = () => (
   <>
-    <h1>使い方</h1>
+    {/* この見出しの連続タップで管理者モードを切り替える（common.js） */}
+    <h1 class="admin-toggle">使い方</h1>
 
     <section class="card guide">
       <h2>ログイン</h2>

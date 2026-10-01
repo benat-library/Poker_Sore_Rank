@@ -208,7 +208,7 @@ function chipFormula(rule, finalChips, rebuys) {
   return `（${finalChips} − 初期${rule.start}${rebuys ? ` − Rebuy ${rule.rebuy}×${rebuys}` : ''}）`;
 }
 
-// ---- 管理者モード（ページの見出し、またはホームの「ランキング一覧」を3秒以内に5回タップで切り替え） ----
+// ---- 管理者モード（使い方ページの「使い方」の見出しを3秒以内に5回タップで切り替え） ----
 const ADMIN_KEY = 'poker.admin';
 function isAdminMode() {
   return storageGet(ADMIN_KEY) === '1';
@@ -219,7 +219,7 @@ function applyAdminMode() {
 }
 let adminTaps = [];
 document.addEventListener('click', (event) => {
-  if (!event.target.closest('main h1, .admin-toggle')) return;
+  if (!event.target.closest('.admin-toggle')) return;
   const now = Date.now();
   adminTaps = adminTaps.filter((t) => now - t < 3000).concat(now);
   if (adminTaps.length < 5) return;
