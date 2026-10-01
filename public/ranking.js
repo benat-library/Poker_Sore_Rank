@@ -49,13 +49,7 @@ signButtons.forEach((btn) => btn.addEventListener('click', () => setSign(Number(
 userNameInput.value = storageGet(USER_NAME_KEY) || '';
 userNameInput.addEventListener('input', () => storageSet(USER_NAME_KEY, userNameInput.value.trim()));
 
-// Score欄は数字以外を取り除く（全角数字は半角に直す）
-amountInput.addEventListener('input', () => {
-  const normalized = amountInput.value
-    .replace(/[０-９]/g, (ch) => String.fromCharCode(ch.charCodeAt(0) - 0xfee0))
-    .replace(/[^0-9]/g, '');
-  if (normalized !== amountInput.value) amountInput.value = normalized;
-});
+keepDigitsOnly(amountInput);
 
 playedOnInput.value = todayString();
 
@@ -71,12 +65,12 @@ form.addEventListener('submit', async (event) => {
   button.disabled = true;
   try {
     const amount = sign * Number(amountInput.value);
-    await api('POST', `/api/rankings/${rankingId}/scores`, {
+    const result = await api('POST', `/api/rankings/${rankingId}/scores`, {
       user_name: userNameInput.value,
       amount,
       played_on: playedOnInput.value,
     });
-    showMessage(`${formatAmount(amount)} を登録しました`);
+    showMessage(`${formatAmount(amount)} ${result.overwritten ? 'で上書き' : 'を登録'}しました`);
     amountInput.value = '';
     setSign(1);
     loadSummary();

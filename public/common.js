@@ -96,3 +96,13 @@ function amountClass(n) {
 function currentRankingId() {
   return document.getElementById('page').dataset.rankingId;
 }
+
+// Score欄は数字以外を取り除く（全角数字は半角に直す）
+function keepDigitsOnly(input) {
+  input.addEventListener('input', () => {
+    const normalized = input.value
+      .replace(/[０-９]/g, (ch) => String.fromCharCode(ch.charCodeAt(0) - 0xfee0))
+      .replace(/[^0-9]/g, '');
+    if (normalized !== input.value) input.value = normalized;
+  });
+}

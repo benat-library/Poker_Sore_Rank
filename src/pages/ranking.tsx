@@ -39,6 +39,7 @@ export const RankingPage = ({ id }: { id: number }) => (
           </div>
           <input id="amount" type="text" inputmode="numeric" pattern="[0-9]*" placeholder="Score" autocomplete="off" required />
         </div>
+        <small class="note">※同じ日に登録したScoreは上書きされます</small>
       </div>
 
       <label>

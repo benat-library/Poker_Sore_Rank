@@ -104,3 +104,18 @@ input[type="text"], input[type="date"], input[type="password"], input[inputmode=
 .sign-btn.active[data-sign="1"] { background: #15803d; border-color: #15803d; color: #fff; }
 .sign-btn.active[data-sign="-1"] { background: #dc2626; border-color: #dc2626; color: #fff; }
 .amount-row input { flex: 1; min-width: 0; font-size: 20px; }
+
+/* 入力履歴 */
+.subtitle { display: block; font-size: 0.9rem; font-weight: normal; color: #6b7280; overflow-wrap: anywhere; }
+.filter { display: flex; flex-direction: column; gap: 4px; margin: 16px 0; font-size: 0.9rem; color: #374151; }
+select {
+  width: 100%; min-height: 48px; padding: 10px 12px; font-size: 16px;
+  border: 1px solid #d1d5db; border-radius: 8px; background: #fff; color: #222;
+}
+.history-item { display: flex; flex-direction: column; gap: 10px; padding: 12px 16px; }
+.history-main { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.history-date { font-size: 0.85rem; color: #6b7280; }
+.history-user { font-weight: bold; overflow-wrap: anywhere; }
+.history-amount { font-size: 1.2rem; font-weight: bold; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.history-actions { display: flex; justify-content: flex-end; gap: 8px; }
+.note { font-size: 0.8rem; color: #6b7280; }
