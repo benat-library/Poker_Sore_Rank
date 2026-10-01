@@ -19,13 +19,13 @@ export function validateUserName(input: unknown): Result<string> {
   return { ok: true, value: name }
 }
 
-// 金額：整数で、-1000000 以上 1000000 以下
+// Score（amount）：整数で、-1000000 以上 1000000 以下
 export function validateAmount(input: unknown): Result<number> {
   if (typeof input !== 'number' || !Number.isInteger(input)) {
-    return { ok: false, error: '金額は整数で入力してください' }
+    return { ok: false, error: 'Scoreは整数で入力してください' }
   }
   if (input < -1000000 || input > 1000000) {
-    return { ok: false, error: '金額は -1000000 以上 1000000 以下で入力してください' }
+    return { ok: false, error: 'Scoreは -1000000 以上 1000000 以下で入力してください' }
   }
   return { ok: true, value: input }
 }

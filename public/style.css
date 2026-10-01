@@ -61,7 +61,7 @@ input[type="text"], input[type="date"], input[type="password"], input[inputmode=
 .btn-small { min-height: 44px; padding: 8px 12px; font-size: 14px; }
 .list-item .btn-danger { margin-right: 12px; flex-shrink: 0; }
 
-/* 収支の色 */
+/* Scoreの色 */
 .plus { color: #15803d; }
 .minus { color: #dc2626; }
 
@@ -78,3 +78,29 @@ input[type="text"], input[type="date"], input[type="password"], input[inputmode=
 .delete-btn { display: none; }
 .delete-mode .delete-btn { display: inline-flex; }
 #delete-mode[aria-pressed="true"] { background: #dc2626; border-color: #dc2626; color: #fff; }
+
+/* 順位表 */
+.table-card { padding: 4px 0; overflow-x: auto; }
+.standings { width: 100%; border-collapse: collapse; }
+.standings th, .standings td { padding: 12px 10px; border-bottom: 1px solid #e5e7eb; text-align: left; }
+.standings tr:last-child td { border-bottom: none; }
+.standings th { font-size: 0.8rem; color: #6b7280; font-weight: normal; }
+.standings .col-rank { width: 3em; text-align: center; }
+.standings .col-name { overflow-wrap: anywhere; }
+.standings .col-num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.standings td.plus, .standings td.minus { font-weight: bold; }
+.empty-note { padding: 12px 16px; margin: 0; }
+
+/* 入力フォーム */
+.form-row label, .form-row > div { display: flex; flex-direction: column; gap: 4px; font-size: 0.9rem; color: #374151; }
+.amount-row { display: flex; gap: 8px; }
+.sign-toggle { display: flex; flex-shrink: 0; }
+.sign-btn {
+  width: 56px; min-height: 48px; font-size: 22px; font-weight: bold;
+  border: 1px solid #d1d5db; background: #fff; color: #6b7280; cursor: pointer;
+}
+.sign-btn:first-child { border-radius: 8px 0 0 8px; }
+.sign-btn:last-child { border-radius: 0 8px 8px 0; border-left: none; }
+.sign-btn.active[data-sign="1"] { background: #15803d; border-color: #15803d; color: #fff; }
+.sign-btn.active[data-sign="-1"] { background: #dc2626; border-color: #dc2626; color: #fff; }
+.amount-row input { flex: 1; min-width: 0; font-size: 20px; }

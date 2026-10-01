@@ -56,3 +56,43 @@ function formatDate(iso) {
   const d = new Date(iso);
   return `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}`;
 }
+
+// localStorage の読み書き（プライベートモード等で使えない場合も画面が止まらないようにする）
+function storageGet(key) {
+  try {
+    return localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+function storageSet(key, value) {
+  try {
+    localStorage.setItem(key, value);
+  } catch {
+    // 保存できなくても動作は続ける
+  }
+}
+
+// 入力したユーザー名の保存先キー
+const USER_NAME_KEY = 'poker.userName';
+
+// 端末の時刻帯での今日の日付（YYYY-MM-DD）
+function todayString() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+// Scoreを「+1,200」「-300」形式にする
+function formatAmount(n) {
+  return (n > 0 ? '+' : n < 0 ? '-' : '±') + Math.abs(n).toLocaleString('ja-JP');
+}
+
+// Scoreの符号に応じた色クラス
+function amountClass(n) {
+  return n > 0 ? 'plus' : n < 0 ? 'minus' : '';
+}
+
+// 画面の data-ranking-id からランキングIDを取り出す
+function currentRankingId() {
+  return document.getElementById('page').dataset.rankingId;
+}
