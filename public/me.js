@@ -1,24 +1,30 @@
-// マイページ：全月間リングを通した通算成績
+// マイページ：表示する人の切り替え（管理者・編集モード）と、一覧の10件ずつの切り替え
+// 成績の中身と見た目は、サーバーが作って返す（src/pages/me.tsx）。ここでは差し替えと、見せる・隠すだけを行う
 
 const filterEl = document.getElementById('user-filter');
+const bodyEl = document.getElementById('me-body');
 
-// 表示できる人の一覧（管理者モード用）を読み込み、初期表示は自分にする
-async function load() {
+// 成績の部分にある一覧を、10件ずつの切り替えにする
+function paginateBody() {
+  bodyEl.querySelectorAll('ul.list').forEach(paginateList);
+}
+
+// 選んだ人の成績の部分を、サーバーで作り直してもらって差し替える（URLは変えない）
+async function loadStats() {
+  const target = filterEl.value || me.id;
   try {
-    const players = await api('GET', '/api/stats/players');
-    const current = filterEl.value || me.id;
-    const options = [el('option', { value: me.id }, `自分（${me.name}）`)];
-    players.filter((p) => p.player_key !== me.id).forEach((p) => options.push(el('option', { value: p.player_key }, p.name)));
-    filterEl.replaceChildren(...options);
-    if ([...filterEl.options].some((o) => o.value === current)) filterEl.value = current;
-    loadStats();
-    loadClaims();
+    const res = await request('GET', `/me/stats?player=${encodeURIComponent(target)}`);
+    // サーバーが JSX でエスケープ済みの HTML なので、そのまま入れてよい
+    const template = document.createElement('template');
+    template.innerHTML = await res.text();
+    bodyEl.replaceChildren(template.content);
+    paginateBody();
   } catch (e) {
     showMessage(e.message, true);
   }
 }
 filterEl.addEventListener('change', loadStats);
-// 管理者モードをオフにしたら自分の成績に戻す
+// 編集モードをオフにしたら自分の成績に戻す
 document.addEventListener('adminmodechange', () => {
   if (!isAdminMode() && filterEl.value !== me.id) {
     filterEl.value = me.id;
@@ -26,123 +32,4 @@ document.addEventListener('adminmodechange', () => {
   }
 });
 
-// 選んだ人の成績を読み込んで表示する
-async function loadStats() {
-  const target = filterEl.value || me.id;
-  const noData = document.getElementById('no-data');
-  const stats = document.getElementById('stats');
-  // 表示する人を切り替えたら、一覧は1ページ目から表示する
-  document.getElementById('ring-list').dataset.page = '';
-  try {
-    const data = await api('GET', `/api/stats/player?player=${encodeURIComponent(target)}`);
-    document.getElementById('player-name').textContent = data.name;
-    if (data.games.count === 0) {
-      stats.hidden = true;
-      noData.hidden = false;
-      noData.textContent = 'まだ月間リングの記録がありません';
-      return;
-    }
-    noData.hidden = true;
-    stats.hidden = false;
-    renderStats(data);
-  } catch (e) {
-    showMessage(e.message, true);
-  }
-}
-
-// 取り込んだ過去の記録の、名前ごとのひも付け先（管理者モード用）
-async function loadClaims() {
-  try {
-    const [links, users] = await Promise.all([api('GET', '/api/stats/links'), api('GET', '/api/stats/users')]);
-    document.getElementById('claim-section').hidden = links.length === 0;
-    document.getElementById('claim-list').replaceChildren(...links.map((link) => {
-      const select = el('select', { 'aria-label': `${link.name} のひも付け先` },
-        el('option', { value: '' }, '未ひも付け'),
-        ...users.map((u) => el('option', { value: u.discord_id }, u.username)));
-      select.value = link.discord_id || '';
-      return el('li', { class: 'card history-item' },
-        el('div', null,
-          el('div', { class: 'history-user' }, link.name),
-          el('div', { class: 'history-date' },
-            `${link.count}件 ・ ${formatDay(link.first_day)} 〜 ${formatDay(link.last_day)} ・ 現在：${link.owner || '未ひも付け'}`)
-        ),
-        el('div', { class: 'claim-row' },
-          select,
-          el('button', { type: 'button', class: 'btn btn-small', onclick: () => changeLink(link, select) }, '変更')
-        )
-      );
-    }));
-  } catch (e) {
-    showMessage(e.message, true);
-  }
-}
-
-async function changeLink(link, select) {
-  const next = select.value || null;
-  if (next === (link.discord_id || null)) {
-    showMessage('ひも付け先が変わっていません', true);
-    return;
-  }
-  const nextName = next ? `${select.selectedOptions[0].textContent} さん` : '未ひも付け';
-  if (!confirm(`「${link.name}」の記録 ${link.count}件のひも付け先を、${link.owner || '未ひも付け'} → ${nextName} に変更しますか？`)) return;
-  try {
-    const result = await api('POST', '/api/stats/link', { name: link.name, discord_id: next });
-    showMessage(result.owner ? `${result.count}件を ${result.owner} さんの記録にしました` : `${result.count}件のひも付けを解除しました`);
-    load();
-  } catch (e) {
-    showMessage(e.message, true);
-  }
-}
-
-// 数値を表示する（数字を大きく、単位を小さく。cls はプラス・マイナスの色）
-function setStat(id, value, unit, cls) {
-  const node = document.getElementById(id);
-  node.className = `stat-value ${cls || ''}`;
-  node.replaceChildren(el('span', { class: 'stat-num' }, value));
-  if (unit && value !== '-') node.append(el('span', { class: 'stat-unit' }, unit));
-}
-
-// 割合（%の数字だけ）。分母が0なら「-」
-function percent(part, whole) {
-  return whole ? String(Math.round((part / whole) * 100)) : '-';
-}
-
-// 平均（小数1桁の数字だけ）。値がなければ「-」
-function avg(value) {
-  return value === null || value === undefined ? '-' : value.toFixed(1);
-}
-
-function renderStats(data) {
-  const g = data.games;
-  const draws = g.count - g.wins - g.losses;
-  setStat('game-count', String(g.count), '戦');
-  setStat('game-firsts', String(g.firsts), '回');
-  setStat('game-first-rate', percent(g.firsts, g.count), '%');
-  setStat('game-avg-rank', avg(g.avg_rank), '位');
-  setStat('game-avg-players', avg(g.avg_players), '人');
-  setStat('game-total', formatAmount(g.total), '', amountClass(g.total));
-  setStat('game-winrate', percent(g.wins, g.count), '%');
-  setStat('game-record', `${g.wins}勝 ${g.losses}敗${draws ? ` ${draws}分` : ''}`);
-
-  const r = data.rings;
-  setStat('ring-count', String(r.count), '回');
-  setStat('ring-firsts', String(r.firsts), '回');
-  setStat('ring-first-rate', percent(r.firsts, r.count), '%');
-  setStat('ring-avg-rank', avg(r.avg_rank), '位');
-  setStat('ring-avg-players', avg(r.avg_players), '人');
-
-  // 月間リングごとの順位（確定前のものは暫定）
-  renderPaged(document.getElementById('ring-list'), data.ring_list, (ring) =>
-    el('li', { class: 'card list-item' },
-      el('a', { class: 'list-link ring-row', href: `/ranking/${ring.id}` },
-        el('div', null,
-          el('div', { class: 'list-title' }, statusBadge(ring), ring.name),
-          el('div', { class: 'list-meta' }, `${ring.status === 'closed' ? '' : '暫定 '}${ring.rank}位 / ${ring.players}人 ・ ${ring.days}戦`)
-        ),
-        el('div', { class: `history-amount ${amountClass(ring.total)}` }, formatAmount(ring.total))
-      )
-    )
-  );
-}
-
-load();
+paginateBody();

@@ -15,6 +15,8 @@ export const HistoryPage = ({ id }: { id: number }) => (
       </select>
     </label>
 
+    {/* 全員分を表示しているときは、日付のタブで1日ずつ切り替える（history.js が描画する） */}
+    <nav id="day-tabs" class="pager day-tabs" aria-label="日付の切り替え" hidden></nav>
     <ul id="history-list" class="list"></ul>
     <p id="empty" class="muted" hidden>入力がありません</p>
   </div>

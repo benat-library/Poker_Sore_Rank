@@ -1,10 +1,12 @@
-// 入力履歴画面：全員の入力を表示し、人で絞り込む。自分の行だけ編集・削除できる（管理者モードでは全員分）
+// 入力履歴画面：全員の入力を表示し、人で絞り込む。自分の行だけ編集・削除できる（編集モードでは全員分）
 
 const rankingId = currentRankingId();
 const listEl = document.getElementById('history-list');
 const emptyEl = document.getElementById('empty');
 const filterEl = document.getElementById('user-filter');
+const dayTabsEl = document.getElementById('day-tabs');
 let allScores = [];
+let selectedDay = null; // 日付のタブで選んでいる日
 let ranking = null;
 
 // データを読み込む（ランキング名・参加者一覧と、全スコア）
@@ -36,14 +38,23 @@ function renderFilter(players) {
   if ([...filterEl.options].some((o) => o.value === current)) filterEl.value = current;
 }
 filterEl.addEventListener('change', render);
-// 管理者モードを切り替えたら、編集・削除ボタンの表示を変える
+// 編集モードを切り替えたら、編集・削除ボタンの表示を変える
 document.addEventListener('adminmodechange', () => { if (ranking) render(); });
 
 // 一覧を描画する
+// 全員分を表示していて記録が複数日あるときは、日付のタブで1日ずつ表示する（人で絞り込んだときは全日分）
 // 月間リングを全員分表示しているときは、日ごとに区切って全員の合計を出す（ゼロサムなので本来は 0 になる）
 function render() {
   const target = filterEl.value;
-  const rows = target ? allScores.filter((s) => s.player_key === target) : allScores;
+  let rows = target ? allScores.filter((s) => s.player_key === target) : allScores;
+  const days = [...new Set(rows.map((s) => s.played_on))];
+  const paged = !target && days.length > 1;
+  if (paged) {
+    // 選んでいた日が無くなっていたら（削除・日付の変更など）、いちばん新しい日にする
+    if (!days.includes(selectedDay)) selectedDay = days[0];
+    rows = rows.filter((s) => s.played_on === selectedDay);
+  }
+  renderDayTabs(paged ? days : []);
   const items = [];
   rows.forEach((score, i) => {
     if (!target && ranking.kind === 'monthly' && (i === 0 || rows[i - 1].played_on !== score.played_on)) {
@@ -53,6 +64,24 @@ function render() {
   });
   listEl.replaceChildren(...items);
   emptyEl.hidden = rows.length > 0;
+}
+
+// 日付のタブ（例：9/30（火））。days が空ならタブを隠す
+function renderDayTabs(days) {
+  dayTabsEl.hidden = days.length === 0;
+  dayTabsEl.replaceChildren(...days.map((date) => {
+    const [, m, d] = date.split('-').map(Number);
+    const active = date === selectedDay;
+    return el('button', {
+      type: 'button',
+      class: active ? 'pager-btn active' : 'pager-btn',
+      'aria-current': active ? 'page' : 'false',
+      onclick: () => {
+        selectedDay = date;
+        render();
+      },
+    }, `${m}/${d}（${weekdayOf(date)}）`);
+  }));
 }
 
 // 日ごとの見出し（人数と全員の合計）
@@ -69,7 +98,7 @@ function renderDayHeader(date, dayRows) {
 
 // 1行分（表示モード）
 function renderRow(score) {
-  // 自分の行（管理者モードでは全員の行）で、確定前のランキングだけ編集・削除できる
+  // 自分の行（編集モードでは全員の行）で、確定前のランキングだけ編集・削除できる
   const isMine = (score.player_key === me.id || isAdminMode()) && ranking.status !== 'closed';
   return el('li', { class: 'card history-item' },
     el('div', { class: 'history-main' },

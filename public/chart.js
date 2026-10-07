@@ -199,6 +199,10 @@ function renderCumulativeChart(container, legendEl, data, colored, highlighted) 
   chart.addEventListener('pointermove', (e) => showAt(e.clientX));
   chart.addEventListener('pointerdown', (e) => showAt(e.clientX));
   chart.addEventListener('pointerleave', (e) => { if (e.pointerType === 'mouse') hide(); });
+  // グラフ以外の場所をタップしたら消す（描き直すたびに前のグラフ用の登録は外す）
+  container.hideTooltipController?.abort();
+  container.hideTooltipController = new AbortController();
+  document.addEventListener('pointerdown', (e) => { if (!chart.contains(e.target)) hide(); }, { signal: container.hideTooltipController.signal });
 
   container.append(chart, tooltip);
 }

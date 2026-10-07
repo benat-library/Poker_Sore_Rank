@@ -47,6 +47,12 @@ export const RankingPage = ({ id }: { id: number }) => (
         <p class="input-user">
           入力者：<strong id="input-user-name"></strong>
         </p>
+        {/* 編集モードでは、名前を手入力して他の人の分も登録できる（空欄なら自分の記録） */}
+        <label class="admin-only">
+          入力する人のintra名（編集モード・空欄なら自分）
+          <input id="input-for" type="text" maxlength={30} autocomplete="off" placeholder="intra名" />
+          <small class="note">intra名は完全一致で判定します（大文字・小文字も区別）。違う名前で入れると、別の人として登録されます</small>
+        </label>
 
         {/* 月間リング：最終チップ数とRebuy回数を入力し、Scoreは自動で計算する */}
         <div id="chip-fields" hidden>

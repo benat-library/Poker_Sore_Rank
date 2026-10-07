@@ -1,6 +1,6 @@
 // 操作履歴（audit_logs）に1行追加する文を作る。操作本体と同じ batch に入れて、一緒に記録する
-export type AuditAction = 'create' | 'update' | 'delete' | 'claim'
-export type AuditTarget = 'ranking' | 'score'
+export type AuditAction = 'create' | 'update' | 'delete' | 'claim' | 'restore' | 'foul'
+export type AuditTarget = 'ranking' | 'score' | 'tournament' | 'request'
 
 export function auditStmt(
   db: D1Database,

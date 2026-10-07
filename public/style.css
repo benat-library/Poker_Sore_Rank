@@ -94,6 +94,9 @@ a { color: #1d4ed8; }
   font-size: 1rem; font-weight: 700; font-variant-numeric: tabular-nums; cursor: pointer;
 }
 .pager-btn.active { background: var(--paper); border-color: var(--paper); color: var(--primary); }
+/* 入力履歴の日付のタブ（一覧の上に置く） */
+.day-tabs { justify-content: flex-start; margin: 0 0 14px; }
+.day-tabs .pager-btn { font-size: 0.9rem; }
 
 /* フォーム */
 .form-row { display: flex; flex-direction: column; gap: 10px; }
@@ -204,10 +207,13 @@ select {
 .me-header { text-align: center; margin: 8px 0 12px; }
 .me-header h1 { margin: 0; font-size: 2rem; letter-spacing: 0.2em; text-shadow: 0 2px 6px rgba(0, 0, 0, 0.3); }
 .me-name { margin: 0; font-size: 1.1rem; font-weight: 700; overflow-wrap: anywhere; }
+.club-badge { display: inline-block; margin-left: 6px; padding: 1px 10px; border-radius: 999px; background: var(--gold); color: #fff; font-size: 0.8rem; font-weight: 800; vertical-align: 2px; }
 .me-section { margin: 28px 0 2px; text-align: center; font-size: 1.25rem; letter-spacing: 0.1em; text-shadow: 0 2px 6px rgba(0, 0, 0, 0.3); }
 .me-section-note { margin: 0 0 10px; text-align: center; }
 /* 説明文のない見出し（月間リングごとの順位）は一覧との間を空ける */
 .me-section + .list { margin-top: 16px; }
+/* 説明文のない見出し（イベント・トーナメントの成績）は、成績のカードとの間を空ける */
+.me-section + .stat-list { margin-top: 12px; }
 .stat-list { display: flex; flex-direction: column; gap: 10px; }
 .stat-card { padding: 6px 20px; }
 .stat-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 48px; }
@@ -248,6 +254,12 @@ input[type="month"] {
   width: 100%; min-height: 48px; padding: 10px 12px; font-size: 16px;
   border: 1px solid var(--border); border-radius: 8px; background: var(--paper); color: var(--ink);
 }
+/* スマホ（特にiPhone）では日付・年月の欄が独自の見た目になり、幅や文字の位置がずれるため、ほかの入力欄に揃える */
+input[type="date"], input[type="month"] {
+  -webkit-appearance: none; appearance: none;
+  display: block; min-width: 0; max-width: 100%; line-height: 1.5; text-align: left;
+}
+input[type="date"]::-webkit-date-and-time-value, input[type="month"]::-webkit-date-and-time-value { margin: 0; text-align: left; }
 
 /* 状態ラベル */
 .badge {
@@ -314,7 +326,24 @@ input[type="month"] {
 .guide { margin-bottom: 12px; }
 .guide h2 { margin: 0 0 8px; }
 .guide p { margin: 0 0 8px; }
-.guide ul { margin: 0; padding-left: 1.2em; }
+/* 本文の下に続く灰色の補足は、少し間を空ける */
+.guide * + .note { margin-top: 10px; }
+.guide ul, .guide ol { margin: 0; padding-left: 1.4em; }
+.guide ol + ul, .guide ul + p, .guide p + ul { margin-top: 8px; }
+.guide .badge { margin-right: 8px; }
+/* 3ステップの手順 */
+/* タップで開閉する項目の一覧 */
+.guide-list { padding: 0 16px; }
+.guide-item + .guide-item { border-top: 1px solid var(--line); }
+.guide-item summary {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  min-height: 52px; font-weight: 700; cursor: pointer; list-style: none;
+}
+.guide-item summary::-webkit-details-marker { display: none; }
+.guide-item summary::after { content: "＋"; flex-shrink: 0; color: var(--primary); font-weight: 800; }
+.guide-item[open] summary::after { content: "−"; }
+.guide-body { padding: 0 0 14px; font-size: 0.95rem; }
+.guide-body p:last-child { margin-bottom: 0; }
 .guide li + li { margin-top: 4px; }
 .guide-formula { padding: 10px 12px; border-radius: 8px; background: var(--soft); font-weight: bold; text-align: center; }
 .guide-table { width: 100%; border-collapse: collapse; margin: 8px 0 12px; font-variant-numeric: tabular-nums; }
@@ -328,12 +357,436 @@ input[type="month"] {
 .login { max-width: 400px; margin: 0 auto; padding: 32px 0; }
 .login h1 { text-align: center; margin-bottom: 24px; }
 .btn-discord { background: #5865f2; border-color: #5865f2; color: #fff; }
+.howto-link { display: flex; flex-direction: column; line-height: 1.4; width: 100%; margin-top: 16px; background: transparent; border-color: rgba(255, 255, 255, 0.6); color: var(--on-felt); }
+
+.guide-howto-link { margin: 8px 0 16px; }
+/* ログイン画面の「はじめてログインする」（カードの中に開閉する項目として置く） */
+.login-help { margin: 0; padding: 0; border-top: 1px solid var(--line); }
+
+/* ポーカーの遊び方 */
+.pcards { display: inline-flex; flex-wrap: wrap; gap: 4px; }
+.pcard {
+  display: inline-flex; align-items: center; justify-content: center; min-width: 2.4em; height: 2.2em; padding: 0 4px;
+  border: 1px solid var(--border); border-radius: 5px; background: var(--paper); color: var(--ink);
+  font-weight: 700; font-size: 0.9rem; font-variant-numeric: tabular-nums; box-shadow: 0 1px 1px rgba(0, 0, 0, 0.08);
+}
+.pcard.red { color: var(--brand-red); }
+.howto-flow li + li { margin-top: 8px; }
+.howto-flow strong { display: block; color: var(--primary); }
+/* サイズ感の項目（見出しの行と内容の行に分ける） */
+.howto-points { margin: 0 0 8px; }
+.howto-points dt { font-weight: 800; color: var(--primary); }
+.howto-points dd { margin: 2px 0 0; }
+.howto-points dd + dt { margin-top: 12px; }
+.howto-hands { list-style: none; padding: 0 !important; margin: 0 0 12px !important; counter-reset: hand; }
+.howto-hands li { display: flex; flex-direction: column; gap: 6px; padding: 10px 0; border-bottom: 1px solid var(--line); counter-increment: hand; }
+.howto-hands li + li { margin-top: 0; }
+.howto-hand-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
+.howto-hand-head strong::before { content: counter(hand) ". "; color: var(--muted); }
+
+/* レンジ表（13×13） */
+.range-chart { display: grid; grid-template-columns: repeat(13, 1fr); gap: 1px; margin: 4px 0 10px; background: var(--paper); }
+.range-cell {
+  display: flex; align-items: center; justify-content: center; aspect-ratio: 1;
+  font-size: clamp(0.5rem, 2.3vw, 0.75rem); font-weight: 700; letter-spacing: -0.03em; border-radius: 2px;
+}
+.tier-1 { background: #0b6b45; color: #fff; }
+.tier-2 { background: #3fa877; color: #fff; }
+.tier-3 { background: #b9e3c9; color: #0b4a32; }
+.tier-0 { background: #eef0f2; color: #9ca3af; }
+.range-legend { list-style: none; padding: 0 !important; margin: 0 0 10px !important; display: grid; gap: 4px; font-size: 0.9rem; }
+.range-swatch { display: inline-block; width: 14px; height: 14px; margin-right: 8px; border-radius: 3px; vertical-align: -2px; }
 .login-error { margin: 0; padding: 10px 12px; border-radius: 8px; background: #fef2f2; color: #991b1b; font-size: 0.9rem; }
 
-/* 管理者モードでだけ表示する要素 */
+/* ---- トーナメント ---- */
+:root {
+  --bk-line: rgba(255, 255, 255, 0.3);   /* トーナメント表の線 */
+  --bk-gold: #f3c75a;                    /* 勝ち上がった線・優勝 */
+}
+
+/* 大会の見出し */
+.tm-hero {
+  position: relative; overflow: hidden; margin-bottom: 16px; padding: 18px 18px 16px; border-radius: 16px; color: #fff;
+  background: radial-gradient(circle at 100% 0%, rgba(243, 199, 90, 0.35), transparent 45%), linear-gradient(135deg, #062a1d, #0d5b3c);
+  border: 1px solid rgba(243, 199, 90, 0.5); box-shadow: var(--shadow);
+}
+.tm-hero::after {
+  content: "♠"; position: absolute; right: -6px; bottom: -48px; font-size: 150px; line-height: 1;
+  color: rgba(255, 255, 255, 0.06); pointer-events: none;
+}
+.tm-hero-top { display: flex; align-items: center; gap: 8px; }
+.tm-hero-kind { font-size: 0.75rem; font-weight: 800; letter-spacing: 0.15em; color: var(--bk-gold); }
+.tm-hero-title { display: flex; align-items: center; gap: 10px; margin: 8px 0 2px; font-size: 1.5rem; overflow-wrap: anywhere; }
+.tm-hero-title .trophy { flex-shrink: 0; color: var(--bk-gold); }
+.tm-hero-date { margin: 0 0 12px; font-size: 0.9rem; color: var(--on-felt-muted); }
+.tm-capacity-text { display: flex; align-items: baseline; justify-content: space-between; font-size: 0.85rem; color: var(--on-felt-muted); }
+.tm-capacity-text strong { font-size: 1.05rem; color: #fff; font-variant-numeric: tabular-nums; }
+.tm-capacity-bar { height: 8px; margin-top: 6px; overflow: hidden; border-radius: 999px; background: rgba(255, 255, 255, 0.15); }
+.tm-capacity-bar span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #f7dc8f, #e0a920); transition: width 0.4s; }
+.tm-capacity-bar.full span { background: linear-gradient(90deg, #ff9b9b, var(--brand-red)); }
+
+/* 申し込み */
+.tm-entry-card { display: flex; flex-direction: column; gap: 10px; text-align: center; }
+.tm-entry-status { margin: 0; font-weight: 700; }
+.tm-entry-btn { min-height: 56px; border-radius: 999px; font-size: 1.1rem; }
+.tm-entries { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; margin: 0; padding: 0; list-style: none; }
+.tm-entry {
+  display: flex; align-items: center; gap: 8px; min-width: 0; padding: 7px 8px 7px 7px; border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.15);
+}
+.tm-entry.mine { background: rgba(243, 199, 90, 0.2); border-color: var(--bk-gold); }
+.tm-entry-no {
+  display: inline-flex; flex-shrink: 0; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 50%;
+  background: var(--paper); color: var(--primary); border: 2px dashed var(--primary); font-size: 0.72rem; font-weight: 800;
+}
+.tm-entry-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 700; }
+.tm-entry-remove {
+  flex-shrink: 0; width: 28px; height: 28px; border: none; border-radius: 50%;
+  background: rgba(255, 255, 255, 0.18); color: #fff; font-size: 1rem; cursor: pointer;
+}
+#add-entry-form { margin-top: 16px; }
+.admin-actions { display: flex; flex-direction: column; gap: 8px; margin-top: 16px; }
+
+/* トーナメント表：隣り合う2つの回戦だけを左右に並べ、間を線でつなぐ（人数が増えても横幅は変わらない） */
+.bk-scroll { padding: 4px 0 16px; }
+
+/* 回戦の切り替え */
+.bk-nav { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+.bk-nav-btn {
+  flex-shrink: 0; width: 44px; height: 44px; border-radius: 50%; cursor: pointer;
+  border: 1px solid rgba(255, 255, 255, 0.4); background: rgba(255, 255, 255, 0.08); color: #fff; font-size: 1.6rem; line-height: 1;
+}
+.bk-nav-btn:disabled { opacity: 0.3; cursor: default; }
+.bk-nav-title { display: flex; align-items: center; gap: 8px; font-size: 1.05rem; font-weight: 800; }
+.bk-nav-arrow { color: var(--bk-gold); }
+.bk-dots { display: flex; justify-content: center; gap: 6px; margin-bottom: 12px; }
+.bk-dot { width: 8px; height: 8px; padding: 0; border: none; border-radius: 4px; background: rgba(255, 255, 255, 0.3); cursor: pointer; transition: width 0.2s; }
+.bk-dot.active { width: 22px; background: var(--bk-gold); }
+
+/* 2列と、その間の線 */
+.bk-heads, .bk-grid { display: grid; grid-template-columns: minmax(0, 1fr) 24px minmax(0, 1fr); }
+.bk-heads { margin-bottom: 4px; text-align: center; font-size: 0.75rem; font-weight: 800; letter-spacing: 0.1em; color: var(--on-felt-muted); }
+.bk-grid { grid-auto-rows: 100px; }
+.bk-cell { display: flex; align-items: center; min-width: 0; }
+.bk-cell > * { width: 100%; }
+.bk-conn { position: relative; }
+/* 左の2試合の中央どうしを結ぶ「]」の形（1試合だけなら横線） */
+.bk-conn::before { content: ""; position: absolute; left: 0; width: 50%; border: 2px solid var(--bk-line); border-left: none; }
+.bk-conn.span2::before { top: 25%; bottom: 25%; border-radius: 0 6px 6px 0; }
+.bk-conn.span1::before { top: 50%; height: 0; border-right: none; border-bottom: none; transform: translateY(-1px); }
+/* 右の試合へ入る横線 */
+.bk-conn::after { content: ""; position: absolute; top: 50%; left: 50%; right: 0; border-top: 2px solid var(--bk-line); transform: translateY(-1px); }
+.bk-conn.won::before, .bk-conn.won::after { border-color: var(--bk-gold); filter: drop-shadow(0 0 3px rgba(243, 199, 90, 0.8)); }
+
+/* 試合の枠 */
+.bk-match { overflow: hidden; border-radius: 10px; background: var(--paper); border: 1px solid rgba(255, 255, 255, 0.1); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3); }
+.bk-label {
+  padding: 2px 8px; font-size: 0.66rem; font-weight: 800; letter-spacing: 0.06em; color: #fff;
+  background: linear-gradient(90deg, var(--felt-dark), var(--primary));
+}
+.bk-match.done .bk-label { background: linear-gradient(90deg, #8a6a12, #d9a520); }
+.bk-player {
+  display: flex; align-items: center; justify-content: space-between; gap: 4px; width: 100%; min-height: 36px; padding: 5px 8px;
+  border: none; background: none; font: inherit; font-size: 0.88rem; font-weight: 700; color: var(--ink); text-align: left;
+}
+.bk-player + .bk-player { border-top: 1px dashed var(--line); }
+.bk-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bk-player.waiting { font-size: 0.78rem; font-weight: 400; color: var(--muted); }
+.bk-player.win { background: linear-gradient(90deg, #fff4d2, #fff); color: #6b4e00; box-shadow: inset 4px 0 0 #d9a520; }
+.bk-player.lose .bk-name { font-weight: 400; color: var(--muted); text-decoration: line-through; }
+.bk-player.mine .bk-name::before { content: "●"; margin-right: 3px; font-size: 0.6em; color: #d9a520; vertical-align: 1px; }
+.bk-win { flex-shrink: 0; padding: 1px 6px; border-radius: 999px; background: #d9a520; color: #fff; font-size: 0.6rem; font-weight: 900; letter-spacing: 0.05em; }
+.bk-player.selectable { cursor: pointer; }
+.bk-player.selectable:active { background: var(--soft); }
+
+/* 不戦勝で通過中の人（シード） */
+.bk-carry {
+  display: flex; align-items: center; gap: 6px; min-width: 0; padding: 8px 10px; border-radius: 999px;
+  border: 1px dashed rgba(255, 255, 255, 0.5); background: rgba(255, 255, 255, 0.08); color: #fff;
+}
+.bk-carry.mine { border-color: var(--bk-gold); }
+.bk-carry-label { flex-shrink: 0; padding: 1px 7px; border-radius: 999px; background: var(--bk-gold); color: #4a3300; font-size: 0.62rem; font-weight: 900; }
+.bk-carry-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.88rem; font-weight: 700; }
+
+/* 優勝者の枠 */
+.bk-champion { padding: 10px 8px; border-radius: 14px; text-align: center; border: 2px dashed rgba(255, 255, 255, 0.35); color: var(--on-felt-muted); }
+.bk-champion .trophy { display: block; margin: 0 auto 2px; }
+.bk-champion-label { font-size: 0.72rem; font-weight: 800; letter-spacing: 0.25em; }
+.bk-champion-name { font-size: 1.05rem; font-weight: 800; overflow-wrap: anywhere; }
+.bk-champion.decided {
+  border: 2px solid #f7dc8f; color: #4a3300;
+  background: radial-gradient(circle at 50% 0%, #fff6d0, #e7b53e 70%, #b8861b);
+  box-shadow: 0 0 0 4px rgba(243, 199, 90, 0.25), 0 8px 20px rgba(0, 0, 0, 0.35);
+}
+
+/* 結果（表彰台と、4位以下の順位） */
+.tm-result { margin-bottom: 8px; }
+.tm-podium { display: flex; align-items: flex-end; justify-content: center; gap: 8px; margin: 8px 0 12px; }
+.tm-podium-step { display: flex; flex: 1; flex-direction: column; max-width: 120px; text-align: center; }
+.tm-podium-step.empty { visibility: hidden; }
+.tm-podium-names { margin-bottom: 6px; font-size: 0.9rem; font-weight: 800; overflow-wrap: anywhere; }
+.tm-podium-names .mine { color: var(--bk-gold); }
+.tm-podium-block {
+  display: flex; align-items: flex-start; justify-content: center; padding-top: 8px; border-radius: 10px 10px 0 0;
+  font-weight: 900; color: #fff; box-shadow: var(--shadow);
+}
+.first .tm-podium-names { font-size: 1.1rem; color: var(--bk-gold); }
+.first .tm-podium-block { height: 110px; background: linear-gradient(180deg, #f7dc8f, #c99415); color: #4a3300; font-size: 1.2rem; }
+.second .tm-podium-block { height: 80px; background: linear-gradient(180deg, #eef0f2, #9ca3af); color: var(--ink); }
+.third .tm-podium-block { height: 60px; background: linear-gradient(180deg, #e6a774, #a5652f); }
+.tm-places { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; margin: 0; padding: 12px 16px; border-radius: 12px; background: rgba(255, 255, 255, 0.08); }
+.tm-places dt { font-weight: 800; color: var(--bk-gold); white-space: nowrap; }
+.tm-places dd { margin: 0; overflow-wrap: anywhere; }
+
+/* 見出しをタップして開閉する欄（マイページの過去の記録のひも付け） */
+.fold-section > summary { list-style: none; cursor: pointer; }
+.fold-section > summary::-webkit-details-marker { display: none; }
+.fold-section > summary h2 { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.fold-section > summary h2::after { content: "＋"; flex-shrink: 0; font-weight: 800; }
+.fold-section[open] > summary h2::after { content: "−"; }
+
+/* 編集モード（管理者）でだけ表示する要素 */
 body:not(.admin-mode) .admin-only { display: none !important; }
 .admin-badge { display: inline-block; padding: 2px 10px; border-radius: 999px; background: var(--brand-red); color: #fff; font-size: 0.75rem; font-weight: bold; }
-/* 管理者モードを切り替える見出し（連続タップで文字選択やダブルタップ拡大が起きないようにする） */
-.admin-toggle { user-select: none; -webkit-user-select: none; touch-action: manipulation; }
+/* 編集モードの切り替えボタン（管理者だけ。画面右下に固定） */
+.edit-toggle {
+  position: fixed; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom)); z-index: 50;
+  padding: 10px 16px; border: 2px solid var(--bk-gold, #d9a520); border-radius: 999px;
+  background: var(--paper); color: #5c4400; font: inherit; font-size: 0.85rem; font-weight: 800;
+  box-shadow: var(--shadow); cursor: pointer; touch-action: manipulation;
+}
+.edit-toggle[aria-pressed="true"] { background: var(--brand-red); border-color: var(--brand-red); color: #fff; }
+/* ボタンで画面の最後が隠れないよう、切り替えボタンのある画面は下に余白を取る */
+body[data-edit="1"] main { padding-bottom: 72px; }
 .claim-row { display: flex; gap: 8px; }
 .claim-row select { flex: 1; min-width: 0; }
+
+/* 半期ランキング：自分の行を目立たせる */
+.standings tr.mine td { background: rgba(243, 199, 90, 0.18); }
+
+/* 管理者ページ */
+.admin-names { margin: 0 0 8px; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 4px 16px; }
+.admin-sub { margin: 16px 0 8px; font-size: 0.95rem; color: var(--on-felt); }
+.log-list { margin: 0; padding: 4px 16px; list-style: none; }
+.log-row { padding: 10px 0; border-bottom: 1px solid var(--line); }
+.log-row:last-child { border-bottom: none; }
+.log-text { font-size: 0.9rem; overflow-wrap: anywhere; }
+.log-meta { margin-top: 2px; font-size: 0.75rem; color: var(--muted); }
+.log-list .muted { padding: 10px 0; color: var(--muted); }
+.pager-gap { align-self: center; padding: 0 2px; color: var(--on-felt-muted); }
+
+/* 管理者が「一般部員として表示」にしているときの帯 */
+.member-view-bar {
+  display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap;
+  padding: 8px 16px; background: #fef3c7; color: #78350f; font-size: 0.85rem; font-weight: bold;
+}
+#member-view-on { margin: 4px 0 8px; }
+
+/* マイページ：管理者の印（部員の金に対して、ロゴの赤） */
+.admin-role-badge { background: var(--brand-red); }
+
+/* ---- ホーム：月間リング・トーナメント・半期ランキングを見た目で区別する ---- */
+.home-section + .home-section { margin-top: 32px; }
+.home-head { display: flex; align-items: center; gap: 12px; margin: 8px 0 12px; }
+.home-head h2 { margin: 0; line-height: 1.3; }
+.home-sub { margin: 0; font-size: 0.78rem; color: var(--on-felt-muted); }
+.home-icon {
+  flex-shrink: 0; display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%;
+  box-shadow: var(--shadow);
+}
+/* 月間リング：赤いチップ */
+.home-icon-ring { background: var(--brand-red); color: #fff; border: 3px dashed rgba(255, 255, 255, 0.8); }
+/* トーナメント：金のトロフィー */
+.home-icon-tournament { background: var(--bk-gold); color: #4a3300; }
+/* 半期ランキング：白地に金の縁 */
+.home-icon-half { background: var(--paper); color: #a87400; border: 2px solid var(--bk-gold); }
+
+/* 月間リング：左端にポーカーチップの縁のような赤い縞、右に参加人数 */
+.ring-card { position: relative; }
+.ring-card::before {
+  content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 7px;
+  background: repeating-linear-gradient(to bottom, var(--brand-red) 0 10px, #f6c9cf 10px 15px);
+}
+.ring-link { display: flex; align-items: center; gap: 12px; padding-left: 20px; }
+.ring-main { flex: 1; min-width: 0; }
+.ring-count { flex-shrink: 0; display: flex; flex-direction: column; align-items: center; min-width: 52px; line-height: 1.1; }
+.ring-count strong { font-size: 1.35rem; font-weight: 800; color: var(--primary); font-variant-numeric: tabular-nums; }
+.ring-count span { font-size: 0.68rem; color: var(--muted); }
+
+/* トーナメント：大会画面の見出しと同じ、深緑に金の縁と♠の透かし */
+.tm-card {
+  position: relative; overflow: hidden; border-radius: 12px; color: #fff;
+  background: radial-gradient(circle at 100% 0%, rgba(243, 199, 90, 0.3), transparent 50%), linear-gradient(135deg, #062a1d, #0d5b3c);
+  border: 1px solid rgba(243, 199, 90, 0.55); box-shadow: var(--shadow);
+}
+.tm-card::after {
+  content: "♠"; position: absolute; right: 8px; bottom: -26px; font-size: 84px; line-height: 1;
+  color: rgba(255, 255, 255, 0.07); pointer-events: none;
+}
+.tm-card-link { position: relative; z-index: 1; display: block; padding: 14px 16px; color: inherit; text-decoration: none; }
+.tm-card-top { display: flex; align-items: center; gap: 6px; }
+.tm-card-entered { font-size: 0.72rem; font-weight: 800; color: var(--bk-gold); }
+.tm-card-title { margin: 4px 0 2px; font-size: 1.1rem; font-weight: 800; overflow-wrap: anywhere; }
+.tm-card-meta { font-size: 0.8rem; color: var(--on-felt-muted); }
+
+/* 半期ランキング：金の帯の見出しと、上位3人 */
+.half-card {
+  display: block; overflow: hidden; border-radius: 12px; background: var(--paper); color: var(--ink);
+  text-decoration: none; box-shadow: var(--shadow); border: 2px solid var(--bk-gold);
+}
+.half-card-head {
+  padding: 10px 16px; font-weight: 800; color: #4a3300;
+  background: linear-gradient(90deg, #f3c75a, #fbe3a1 60%, #f3c75a);
+}
+.half-card-head .badge { background: rgba(255, 255, 255, 0.75); color: #6b4b00; }
+.half-top { margin: 0; padding: 6px 16px; list-style: none; }
+.half-top-row { display: flex; align-items: center; gap: 10px; padding: 6px 0; border-bottom: 1px solid var(--line); }
+.half-top-row:last-child { border-bottom: none; }
+.half-top-row .rank-chip { width: 26px; height: 26px; font-size: 0.85rem; }
+.half-top-name { flex: 1; min-width: 0; font-weight: bold; overflow-wrap: anywhere; }
+.half-top-total { font-weight: 800; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.half-top-total.plus { color: var(--plus); }
+.half-top-total.minus { color: var(--minus); }
+.half-top-row.mine .half-top-name::after { content: "（自分）"; font-size: 0.75rem; font-weight: normal; color: var(--muted); }
+.half-card-foot {
+  display: flex; justify-content: space-between; align-items: center; gap: 8px;
+  padding: 8px 16px; background: var(--soft); font-size: 0.8rem; color: var(--muted);
+}
+.half-more { font-weight: 800; color: var(--primary); }
+
+/* ---- イベント（1日のリングトーナメント）：紫と金 ---- */
+:root { --ev-purple: #6d28d9; --ev-purple-dark: #2e1065; --ev-purple-soft: #ede9fe; }
+.ev-hero {
+  position: relative; overflow: hidden; margin-bottom: 16px; padding: 18px 18px 14px; border-radius: 16px; color: #fff;
+  background: radial-gradient(circle at 100% 0%, rgba(243, 199, 90, 0.3), transparent 45%), linear-gradient(135deg, var(--ev-purple-dark), var(--ev-purple));
+  border: 1px solid rgba(243, 199, 90, 0.5); box-shadow: var(--shadow);
+}
+.ev-hero::after {
+  content: "♦"; position: absolute; right: 0; bottom: -46px; font-size: 150px; line-height: 1;
+  color: rgba(255, 255, 255, 0.07); pointer-events: none;
+}
+.ev-hero-kind { font-size: 0.75rem; font-weight: 800; letter-spacing: 0.1em; color: var(--bk-gold); }
+.ev-hero-title { display: flex; align-items: center; gap: 10px; margin: 6px 0 2px; font-size: 1.5rem; overflow-wrap: anywhere; }
+.ev-star { flex-shrink: 0; color: var(--bk-gold); }
+.ev-hero-meta { margin: 0; font-size: 0.9rem; color: #ddd6fe; }
+/* 開催中：残っている人（編集モードではタップで「飛んだ」を記録） */
+.ev-remaining .tm-entry { padding: 0; }
+.ev-remaining .tm-entry > .tm-entry-name { padding: 9px 14px; }
+.ev-bust-btn {
+  display: flex; align-items: center; gap: 6px; width: 100%; min-height: 44px; padding: 6px 6px 6px 14px;
+  border: none; border-radius: 999px; background: transparent; color: #fff; font: inherit; text-align: left; cursor: pointer;
+}
+.ev-bust-label {
+  flex-shrink: 0; padding: 3px 10px; border-radius: 999px; background: rgba(255, 155, 155, 0.25);
+  border: 1px solid var(--minus-on-felt); color: var(--minus-on-felt); font-size: 0.75rem; font-weight: 800;
+}
+
+/* ホーム：イベントのカード（左端に紫の帯、右に優勝者） */
+.home-icon-event { background: var(--ev-purple); color: var(--bk-gold); }
+.ev-card { position: relative; }
+.ev-card::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 7px; background: linear-gradient(180deg, var(--ev-purple), var(--ev-purple-dark)); }
+.ev-link { display: flex; align-items: center; gap: 12px; padding-left: 20px; }
+.ev-main { flex: 1; min-width: 0; }
+.ev-winner { flex-shrink: 0; max-width: 40%; text-align: right; line-height: 1.2; }
+.ev-winner span { display: block; font-size: 0.68rem; font-weight: 800; color: var(--ev-purple); }
+.ev-winner strong { font-size: 0.9rem; overflow-wrap: anywhere; }
+
+/* マイページ：イベント・トーナメントの一覧 */
+.me-list { margin-top: 12px; }
+.me-place { flex-shrink: 0; display: flex; align-items: center; gap: 2px; font-size: 0.8rem; color: var(--muted); }
+.me-place strong { font-size: 1.25rem; color: var(--ink); font-variant-numeric: tabular-nums; }
+.me-place .rank-chip { width: 28px; height: 28px; font-size: 0.85rem; }
+.me-tm-link { display: flex; align-items: center; gap: 12px; }
+.me-tm-result { flex-shrink: 0; font-weight: 800; font-size: 0.95rem; color: #fff; }
+.me-tm-result.champion { color: var(--bk-gold); }
+
+/* イベント・トーナメントの参加者は、名前が切れないよう縦一列に並べる */
+.entries-vertical { grid-template-columns: 1fr; gap: 6px; }
+.entries-vertical .tm-entry { border-radius: 12px; padding: 8px 10px 8px 8px; }
+.entries-vertical .tm-entry-name { white-space: normal; overflow: visible; overflow-wrap: anywhere; font-size: 1rem; }
+.entries-vertical.ev-remaining .tm-entry { padding: 0; }
+.entries-vertical .ev-bust-btn { border-radius: 12px; min-height: 48px; }
+.entries-vertical .ev-bust-btn .tm-entry-name { flex: 1; }
+
+/* 大会の情報を変える欄 */
+.info-fold { margin-bottom: 8px; }
+.info-fold > summary h2 { margin-top: 8px; font-size: 1rem; }
+
+/* マイページ：名前と印（成績の部分の先頭） */
+.me-body > .me-name { text-align: center; margin: -4px 0 12px; }
+.me-body > .muted { text-align: center; }
+
+/* グラフ欄：記録が1日分だけのときの案内（枠の中央に、上下の余白をそろえて出す） */
+#chart-wait { margin: 0; padding: 14px 8px; text-align: center; font-size: 0.85rem; }
+
+/* ブラインドストラクチャー（イベント・トーナメント） */
+.blind-fold { margin: 8px 0 4px; }
+.blind-fold > summary h2 { margin-top: 8px; font-size: 1rem; }
+.blind-head { margin: 0; padding: 10px 14px 0; font-size: 0.85rem; color: var(--muted); }
+.blind-head strong { font-size: 1.1rem; color: var(--ink); }
+.blind-table th, .blind-table td { padding: 8px 10px; }
+.blind-amount { font-weight: 800; font-variant-numeric: tabular-nums; }
+
+/* ブラインドの編集欄（編集モード） */
+.blind-form { margin-top: 8px; }
+.blind-form-title { margin: 0; font-weight: 800; color: var(--ink); }
+.blind-rows { display: flex; flex-direction: column; gap: 6px; }
+.form-row .blind-row { display: flex; flex-direction: row; align-items: center; gap: 6px; }
+.blind-row-lv { flex-shrink: 0; width: 3.2em; font-size: 0.8rem; font-weight: 800; color: var(--muted); }
+.blind-row input { flex: 1; min-width: 0; min-height: 40px; padding: 6px 10px; text-align: right; }
+.blind-row-sep { flex-shrink: 0; color: var(--muted); }
+.blind-row-remove {
+  flex-shrink: 0; width: 34px; height: 34px; border: 1px solid var(--border); border-radius: 50%;
+  background: var(--paper); color: var(--minus); font-size: 1rem; cursor: pointer;
+}
+.form-row .blind-form-actions { display: flex; flex-direction: row; gap: 8px; }
+.form-row .blind-minutes-row { display: flex; align-items: center; gap: 8px; color: var(--ink-sub); }
+.blind-minutes-row input { width: 5em; text-align: right; }
+
+/* エラー用の画面 */
+.error-page { margin: 48px auto 0; max-width: 420px; text-align: center; }
+.error-code { margin: 0; font-size: 3.5rem; font-weight: 800; line-height: 1; color: var(--bk-gold); letter-spacing: 0.08em; text-shadow: 0 2px 6px rgba(0, 0, 0, 0.3); }
+.error-page h1 { margin: 12px 0 8px; }
+.error-text { margin: 0 0 24px; color: var(--on-felt-muted); }
+.error-home { display: inline-flex; min-width: 200px; justify-content: center; }
+
+/* ログイン画面：新入生向けの注意（赤字） */
+.login-notice { margin: 0; font-size: 0.85rem; font-weight: 700; color: var(--minus); }
+
+/* 反則の画面（権限のない操作を API で実行しようとしたとき） */
+.foul {
+  position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; padding: 16px;
+  background: rgba(60, 0, 8, 0.82); animation: foul-in 0.25s ease-out;
+}
+.foul-card {
+  width: min(100%, 380px); padding: 28px 22px 22px; border-radius: 16px; text-align: center;
+  background: var(--paper); color: var(--ink); border: 4px solid var(--brand-red); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+/* サッカーのレッドカードのような赤い札 */
+.foul-mark {
+  width: 56px; height: 76px; margin: 0 auto 14px; border-radius: 6px; background: var(--brand-red);
+  box-shadow: 0 4px 10px rgba(208, 2, 27, 0.5); transform: rotate(-8deg); animation: foul-card 0.6s ease-out;
+}
+.foul-title { margin: 0 0 8px; font-size: 1.3rem; color: var(--brand-red); }
+.foul-text { margin: 0 0 18px; font-size: 0.95rem; }
+.foul-back { min-width: 180px; }
+@keyframes foul-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes foul-card { 0% { transform: translateY(-40px) rotate(-30deg); opacity: 0; } 100% { transform: rotate(-8deg); opacity: 1; } }
+
+/* 管理ページの操作履歴：反則の行は赤で目立たせる */
+.log-row.log-foul { margin: 0 -16px; padding: 10px 16px; background: #fff1f2; border-left: 5px solid var(--brand-red); }
+.log-foul .log-text { font-weight: 800; color: var(--brand-red); }
+/* 退場処分中の画面 */
+.banned-page .foul-mark { margin-bottom: 18px; }
+
+/* 使い方ページ：このアプリでできること */
+.feature-list { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; }
+.guide .feature-list { padding-left: 0; }
+.feature { display: flex; align-items: flex-start; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.feature:first-child { padding-top: 4px; }
+.feature:last-child { border-bottom: none; }
+.feature .home-icon { width: 36px; height: 36px; box-shadow: none; }
+.feature-title { margin: 0 0 2px; font-weight: 800; color: var(--ink); }
+.guide .feature-text { margin: 0; font-size: 0.9rem; color: var(--ink-sub); }
+/* マイページのアイコン（深緑の丸に白い人の形） */
+.home-icon-me { background: var(--primary); color: #fff; }

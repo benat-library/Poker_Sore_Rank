@@ -1,10 +1,11 @@
 import { Hono } from 'hono'
-import type { AppEnv } from '../types'
+import type { AppEnv, LoginUser } from '../types'
 import { errorJson, parseId, readJson } from '../lib/http'
-import { validateAmount, validateFinalChips, validatePlayedOn, validateRebuys, type Result } from '../lib/validation'
+import { validateAmount, validateFinalChips, validatePlayedOn, validateRebuys, validateUserName, type Result } from '../lib/validation'
 import { scoreFromChips } from '../lib/rules'
 import { checkWritable, type RankingInfo } from '../lib/period'
 import { auditStmt } from '../lib/audit'
+import { foul } from '../lib/foul'
 import { withStatus } from './rankings'
 
 // 同じ人の判定に使うキー。Discord とひも付いた記録は Discord ID、まだの記録は名前で判定する
@@ -27,15 +28,20 @@ async function findScore(db: D1Database, scoreId: number) {
   return db
     .prepare(
       `SELECT r.id, r.name, r.kind, r.period,
-         s.id AS score_id, s.ranking_id, ${PLAYER_KEY} AS player_key, s.amount, s.final_chips, s.rebuys, s.played_on
+         s.id AS score_id, s.ranking_id, ${PLAYER_KEY} AS player_key, s.discord_id, s.amount, s.final_chips, s.rebuys, s.played_on
        FROM scores s JOIN rankings r ON r.id = s.ranking_id
        WHERE s.id = ? AND s.deleted_at IS NULL AND r.deleted_at IS NULL`
     )
     .bind(scoreId)
-    .first<RankingInfo & ScoreValues & { score_id: number; ranking_id: number; player_key: string; played_on: string }>()
+    .first<RankingInfo & ScoreValues & { score_id: number; ranking_id: number; player_key: string; discord_id: string | null; played_on: string }>()
 }
 
 type ScoreValues = { amount: number; final_chips: number | null; rebuys: number | null }
+
+// 修正・削除できるのは、本人の記録（ひも付いた Discord ID が自分）か、管理者だけ
+function canEdit(user: LoginUser, score: { discord_id: string | null }) {
+  return user.is_admin || score.discord_id === user.discord_id
+}
 
 // 入力されたScoreを読み取る
 // 月間リングは最終チップ数とRebuy回数からScoreを計算し、イベントはScoreをそのまま受け取る
@@ -94,7 +100,27 @@ rankingScores.get('/:id/summary', async (c) => {
   return c.json({ ranking: withStatus(ranking), rows: summary.results })
 })
 
+// 記録する人（discord_id：ひも付け先、user_name：記録上の名前、created_by：入力者。取り込み扱いの記録は空）
+type ScoreOwner = { discord_id: string | null; user_name: string; created_by: string | null }
+
+// 管理者が、名前を手入力して他の人の分を登録するときの記録先を決める
+// ログインしたことのある部員の名前か、部員にひも付いた過去の記録の名前と一致すれば（1人に決まるときだけ）、その部員の記録にする
+// 一致しなければ、取り込んだ過去の記録と同じ扱い（created_by が空）にし、その人の初回ログイン時に自動でひも付くようにする
+export async function ownerByName(db: D1Database, name: string, actor: string): Promise<ScoreOwner> {
+  const { results } = await db
+    .prepare(
+      `SELECT discord_id FROM users WHERE username = ?1
+       UNION SELECT discord_id FROM scores WHERE user_name = ?1 AND discord_id IS NOT NULL AND deleted_at IS NULL
+       LIMIT 2`
+    )
+    .bind(name)
+    .all<{ discord_id: string }>()
+  if (results.length === 1) return { discord_id: results[0].discord_id, user_name: name, created_by: actor }
+  return { discord_id: null, user_name: name, created_by: null }
+}
+
 // スコア登録（ログイン中の本人の記録として登録する。同じ日の入力がすでにあれば上書きする）
+// user_name を付けると（管理者）、その名前の人の記録として登録する
 rankingScores.post('/:id/scores', async (c) => {
   const id = parseId(c.req.param('id'))
   if (id === null) return errorJson(c, 400, 'ランキングIDが正しくありません')
@@ -104,6 +130,8 @@ rankingScores.post('/:id/scores', async (c) => {
 
   const ranking = await rankingStmt(c.env.DB, id).first<RankingInfo>()
   if (!ranking) return errorJson(c, 404, 'ランキングが見つかりません')
+  // イベントは Score ではなく、管理者が順位で記録する（/api/events）
+  if (ranking.kind === 'event') return errorJson(c, 400, 'イベントの結果は、管理者が順位で入力します')
 
   const values = readScoreValues(body, ranking)
   if (!values.ok) return errorJson(c, 400, values.error)
@@ -113,14 +141,28 @@ rankingScores.post('/:id/scores', async (c) => {
   if (notWritable) return errorJson(c, 400, notWritable)
 
   const user = c.get('user')
+  let owner: ScoreOwner = { discord_id: user.discord_id, user_name: user.username, created_by: user.discord_id }
+  if (body.user_name !== undefined && body.user_name !== '') {
+    // 他の人の分の登録は管理者だけ
+    if (!user.is_admin) return foul(c, '他の人の分のスコア登録')
+    const name = validateUserName(body.user_name)
+    if (!name.ok) return errorJson(c, 400, name.error)
+    owner = await ownerByName(c.env.DB, name.value, user.discord_id)
+  }
+
   const now = new Date().toISOString()
   const v = values.value
-  const existing = await c.env.DB.prepare(
-    `SELECT id, amount, final_chips, rebuys, played_on FROM scores
-     WHERE ranking_id = ? AND discord_id = ? AND played_on = ? AND deleted_at IS NULL`
-  )
-    .bind(id, user.discord_id, playedOn.value)
-    .first<ScoreValues & { id: number; played_on: string }>()
+  // 同じ人・同じ日の入力を探す（ひも付いた人は Discord ID、まだの人は名前で判定する）
+  const existing = await (owner.discord_id
+    ? c.env.DB.prepare(
+        `SELECT id, amount, final_chips, rebuys, played_on FROM scores
+         WHERE ranking_id = ? AND discord_id = ? AND played_on = ? AND deleted_at IS NULL`
+      ).bind(id, owner.discord_id, playedOn.value)
+    : c.env.DB.prepare(
+        `SELECT id, amount, final_chips, rebuys, played_on FROM scores
+         WHERE ranking_id = ? AND discord_id IS NULL AND user_name = ? AND played_on = ? AND deleted_at IS NULL`
+      ).bind(id, owner.user_name, playedOn.value)
+  ).first<ScoreValues & { id: number; played_on: string }>()
 
   if (existing) {
     // 同じ日の入力を上書きする（変更前の内容は操作履歴に残る）
@@ -134,22 +176,23 @@ rankingScores.post('/:id/scores', async (c) => {
       ),
       auditStmt(c.env.DB, user.discord_id, 'update', 'score', existing.id, existing, { ...v, played_on: playedOn.value }),
     ])
-    return c.json({ id: existing.id, ...v, played_on: playedOn.value, overwritten: true })
+    return c.json({ id: existing.id, user_name: owner.user_name, ...v, played_on: playedOn.value, overwritten: true })
   }
 
   const [inserted] = await c.env.DB.batch<{ id: number }>([
     c.env.DB.prepare(
       `INSERT INTO scores (ranking_id, user_name, discord_id, amount, final_chips, rebuys, played_on, created_at, created_by)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`
-    ).bind(id, user.username, user.discord_id, v.amount, v.final_chips, v.rebuys, playedOn.value, now, user.discord_id),
+    ).bind(id, owner.user_name, owner.discord_id, v.amount, v.final_chips, v.rebuys, playedOn.value, now, owner.created_by),
     auditStmt(c.env.DB, user.discord_id, 'create', 'score', null, null, {
       ranking_id: id,
-      user_name: user.username,
+      user_name: owner.user_name,
+      discord_id: owner.discord_id,
       ...v,
       played_on: playedOn.value,
     }),
   ])
-  return c.json({ id: inserted.results[0].id, ...v, played_on: playedOn.value, overwritten: false }, 201)
+  return c.json({ id: inserted.results[0].id, user_name: owner.user_name, ...v, played_on: playedOn.value, overwritten: false }, 201)
 })
 
 // スコア単体のAPI（/api/scores/:id）
@@ -165,6 +208,7 @@ scores.put('/:id', async (c) => {
 
   const target = await findScore(c.env.DB, id)
   if (!target) return errorJson(c, 404, 'スコアが見つかりません')
+  if (!canEdit(c.get('user'), target)) return foul(c, '他の人のスコアの修正')
 
   const values = readScoreValues(body, target)
   if (!values.ok) return errorJson(c, 400, values.error)
@@ -206,6 +250,7 @@ scores.delete('/:id', async (c) => {
 
   const target = await findScore(c.env.DB, id)
   if (!target) return errorJson(c, 404, 'スコアが見つかりません')
+  if (!canEdit(c.get('user'), target)) return foul(c, '他の人のスコアの削除')
   const notWritable = checkWritable(target, null)
   if (notWritable) return errorJson(c, 400, notWritable)
 

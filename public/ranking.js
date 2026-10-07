@@ -69,6 +69,9 @@ function drawChart() {
   const enough = chartData.dates.length >= 2;
   document.getElementById('chart-wait').hidden = enough;
   document.getElementById('chart-help').hidden = !enough;
+  document.getElementById('chart').hidden = !enough;
+  document.getElementById('chart-legend').hidden = !enough;
+  if (!enough) return;
   renderCumulativeChart(document.getElementById('chart'), document.getElementById('chart-legend'), chartData, coloredNames, highlighted);
 }
 
@@ -204,6 +207,10 @@ form.addEventListener('submit', async (event) => {
     return;
   }
   const body = { played_on: playedOnInput.value };
+  // 編集モードで名前が入っていれば、その人の記録として登録する
+  const inputFor = document.getElementById('input-for');
+  const forName = isAdminMode() ? inputFor.value.trim() : '';
+  if (forName) body.user_name = forName;
   if (chipRule) {
     body.final_chips = Number(finalChipsInput.value);
     body.rebuys = currentRebuys();
@@ -214,7 +221,8 @@ form.addEventListener('submit', async (event) => {
   button.disabled = true;
   try {
     const result = await api('POST', `/api/rankings/${rankingId}/scores`, body);
-    showMessage(`${formatAmount(result.amount)} ${result.overwritten ? 'で上書き' : 'を登録'}しました`);
+    showMessage(`${forName ? `${result.user_name} さんの記録として ` : ''}${formatAmount(result.amount)} ${result.overwritten ? 'で上書き' : 'を登録'}しました`);
+    inputFor.value = '';
     amountInput.value = '';
     setSign(1);
     resetChipFields();

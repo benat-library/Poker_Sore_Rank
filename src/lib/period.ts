@@ -58,3 +58,30 @@ export function checkWritable(ranking: RankingInfo, playedOn: string | null, tod
   }
   return null
 }
+
+// ---- 半期（年度の前期：4〜9月、後期：10〜3月）----
+// 半期は「年度-1」（前期）「年度-2」（後期）の形で表す（例：2026年10月〜2027年3月は「2026-2」）
+
+// 年月（YYYY-MM）が属する半期
+export function termOf(period: string): string {
+  const [y, m] = period.split('-').map(Number)
+  if (m >= 4 && m <= 9) return `${y}-1`
+  return m >= 10 ? `${y}-2` : `${y - 1}-2`
+}
+
+// 半期の最初と最後の年月（YYYY-MM）
+export function termRange(term: string): { from: string; to: string } {
+  const [y, h] = term.split('-').map(Number)
+  return h === 1 ? { from: `${y}-04`, to: `${y}-09` } : { from: `${y}-10`, to: `${y + 1}-03` }
+}
+
+// 半期の名前（例：2026年度 後期（10月〜3月））
+export function termTitle(term: string): string {
+  const [y, h] = term.split('-').map(Number)
+  return h === 1 ? `${y}年度 前期（4月〜9月）` : `${y}年度 後期（10月〜3月）`
+}
+
+// 半期の集計が確定しているか（最後の月の月間リングが確定していれば確定）
+export function termClosed(term: string, today = todayJst()): boolean {
+  return termRange(term).to <= latestClosedPeriod(today)
+}
