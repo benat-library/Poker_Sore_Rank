@@ -1,2 +1,11 @@
-# Discord アプリの Client Secret（Discord Developer Portal の OAuth2 画面で発行する）
+# Discord アプリの Client ID と Client Secret（Discord Developer Portal の OAuth2 画面で確認・発行する）
+DISCORD_CLIENT_ID=
 DISCORD_CLIENT_SECRET=
+# ログインを許可するサーバー（42 のサーバー）の ID
+DISCORD_GUILD_ID=
+# 競技ポーカー部のロール ID（空なら「部員」表示なし）
+CLUB_ROLE_ID=
+# ポーカー運営サーバーの ID（DISCORD_GUILD_ID と両方に入っている人を管理者にする。空なら管理者なし）
+ADMIN_GUILD_ID=
+# 42のサーバーに入っていなくてもログインできる例外の Discord ユーザーID（カンマ区切り。空なら例外なし）
+LOGIN_ALLOW_IDS=

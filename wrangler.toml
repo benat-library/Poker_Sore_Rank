@@ -1,12 +1,20 @@
 name = "poker-score-rank"
 main = "src/index.tsx"
 compatibility_date = "2025-09-01"
+# プレビュー用URLは使わない（確認は本番URLで行う）
+preview_urls = false
 
-# Discord ログインの設定（秘密情報ではない値）
-# Client Secret は秘密情報なので、ここには書かず wrangler secret put DISCORD_CLIENT_SECRET で設定する
-[vars]
-DISCORD_CLIENT_ID = "REMOVED"
-DISCORD_GUILD_ID = "REMOVED"
+# Discord ログインの設定値（どのサーバー・ロールかが分かるので、リポジトリには書かない）
+#   DISCORD_CLIENT_ID … Discord アプリの Client ID
+#   DISCORD_GUILD_ID  … ログインを許可するサーバー（42 のサーバー）の ID
+#   CLUB_ROLE_ID      … 競技ポーカー部のロール ID（持っている人をマイページで「部員」と表示。空なら表示しない）
+#   ADMIN_GUILD_ID    … ポーカー運営サーバーの ID（DISCORD_GUILD_ID と両方に入っている人を管理者にする。空なら管理者なし）
+# 本番：Cloudflare ダッシュボード（Workers → poker-score-rank → Settings → Variables）か wrangler secret put で設定する
+# 手元：.dev.vars に書く（.dev.vars.example を参照）
+# Client Secret と、42のサーバーに入っていなくてもログインできる例外のユーザーID（LOGIN_ALLOW_IDS）も
+# wrangler secret put で設定する
+# keep_vars：deploy のたびにダッシュボードで設定した変数が消えないようにする
+keep_vars = true
 
 # D1データベースの設定（コードからは c.env.DB として参照する）
 [[d1_databases]]

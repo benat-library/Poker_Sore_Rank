@@ -7,3 +7,5 @@ dist/
 /42poker_logo.png
 /public/logo.png
 *:Zone.Identifier
+# 手元だけのバックアップ（古い Discord の ID を含むので絶対に上げない）
+/backup/
