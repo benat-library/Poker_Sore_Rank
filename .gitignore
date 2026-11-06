@@ -9,3 +9,5 @@ dist/
 *:Zone.Identifier
 # 手元だけのバックアップ（古い Discord の ID を含むので絶対に上げない）
 /backup/
+
+Poker_Sore_Rank_仕様書.md

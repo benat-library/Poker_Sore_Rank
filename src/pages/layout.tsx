@@ -61,7 +61,34 @@ function MemberViewBar() {
   )
 }
 
-const FONT_CSS = 'https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700;800&display=swap'
+// SNS・Discord でリンクを貼ったときのプレビュー（OGP）
+// 未ログインのクローラーはどのページでも /login に飛ばされるので、タイトルと説明は全ページ共通にする
+// （ページごとに変えると、ランキング名などがログインなしで見えてしまう）
+const SITE_NAME = 'ポーカー部 スコア集計'
+const SITE_DESCRIPTION = '42 Tokyo 競技ポーカー部のスコア集計・ランキング・大会運営アプリ'
+
+function Ogp() {
+  // og:image と og:url は絶対URLにする必要がある
+  const url = new URL(useRequestContext().req.url)
+  return (
+    <>
+      <meta name="description" content={SITE_DESCRIPTION} />
+      <meta property="og:type" content="website" />
+      <meta property="og:locale" content="ja_JP" />
+      <meta property="og:site_name" content={SITE_NAME} />
+      <meta property="og:title" content={SITE_NAME} />
+      <meta property="og:description" content={SITE_DESCRIPTION} />
+      <meta property="og:url" content={`${url.origin}${url.pathname}`} />
+      <meta property="og:image" content={`${url.origin}/ogp.png`} />
+      <meta property="og:image:width" content="1200" />
+      <meta property="og:image:height" content="630" />
+      <meta property="og:image:alt" content="POKER42 競技ポーカー部 スコア集計" />
+      <meta name="twitter:card" content="summary_large_image" />
+    </>
+  )
+}
+
+const FONT_CSS ='https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700;800&display=swap'
 
 // 全ページ共通の外枠
 export const renderer = jsxRenderer(
@@ -77,6 +104,7 @@ export const renderer = jsxRenderer(
         <link rel="icon" href="/favicon.ico" sizes="48x48" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         <title>{title}</title>
+        <Ogp />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" />
         {/* フォントは読み込みを待たずに画面を出し、読み込めた時点で切り替える（画面の JS が待たされないように） */}
