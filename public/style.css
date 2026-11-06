@@ -607,11 +607,74 @@ body[data-edit="1"] main { padding-bottom: 72px; }
   content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 7px;
   background: repeating-linear-gradient(to bottom, var(--brand-red) 0 10px, #f6c9cf 10px 15px);
 }
-.ring-link { display: flex; align-items: center; gap: 12px; padding-left: 20px; }
+.ring-link { padding-left: 20px; }
+.ring-head { display: flex; align-items: center; gap: 12px; }
 .ring-main { flex: 1; min-width: 0; }
 .ring-count { flex-shrink: 0; display: flex; flex-direction: column; align-items: center; min-width: 52px; line-height: 1.1; }
 .ring-count strong { font-size: 1.35rem; font-weight: 800; color: var(--primary); font-variant-numeric: tabular-nums; }
 .ring-count span { font-size: 0.68rem; color: var(--muted); }
+
+/* 月間リングの状態：カードの枠と地の色で見せる */
+.ring-deadline { margin-top: 3px; font-size: 0.82rem; color: var(--muted); }
+.ring-deadline strong { margin-left: 6px; padding: 0 7px; border-radius: 999px; font-size: 0.75rem; }
+
+/* 土曜の定例リングのマス（過ぎた土曜は塗りつぶし、今日の土曜は太枠） */
+.ring-sats { margin-top: 8px; }
+.ring-sats ol { display: flex; flex-wrap: wrap; gap: 5px; margin: 0; padding: 0; list-style: none; }
+.ring-sats li {
+  display: grid; place-items: center; min-width: 42px; height: 26px; padding: 0 4px; border-radius: 6px;
+  border: 2px solid #cbd5e1; background: var(--paper); font-size: 0.72rem; font-weight: bold; color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.ring-sats li.done { border-color: #16a34a; background: #16a34a; color: #fff; }
+.ring-sats li.today { border-color: #16a34a; border-width: 3px; color: #166534; box-shadow: 0 0 0 3px rgba(74, 222, 128, 0.35); }
+.ring-grace .ring-sats li.done { border-color: #ea580c; background: #ea580c; }
+
+/* 開催中：明るい緑の太枠と光で、いま記録できるリングだとすぐわかるように */
+.ring-card.ring-open { box-shadow: 0 0 0 3px #4ade80, 0 0 18px rgba(74, 222, 128, 0.45), var(--shadow); }
+.ring-open .ring-deadline strong { background: #dcfce7; color: #166534; }
+
+/* 締め間近：オレンジの太枠と暖色の地。締め切りの日数を強めに出す */
+.ring-card.ring-grace { background: #fff7ed; box-shadow: 0 0 0 3px #fb923c, var(--shadow); }
+.ring-grace .ring-deadline { color: #9a3412; font-weight: bold; }
+.ring-grace .ring-deadline strong { background: #ea580c; color: #fff; }
+
+/* 確定：灰色の地で一歩引かせる（チップの縞も灰色に） */
+.ring-card.ring-closed { background: #e9ecef; box-shadow: none; }
+.ring-card.ring-closed::before { background: repeating-linear-gradient(to bottom, #9ca3af 0 10px, #d1d5db 10px 15px); }
+.ring-closed .list-title { color: var(--ink-sub); }
+.ring-closed .ring-count strong { color: var(--muted); }
+.ring-closed .badge-closed { background: #fff; }
+
+/* 確定した月間リングの優勝バナー：深緑のフェルトに金の縁と王冠 */
+.champ-banner {
+  position: relative; display: block; overflow: hidden; margin-bottom: 20px; padding: 16px 18px 0; border-radius: 16px;
+  color: #fff; text-decoration: none; text-align: center;
+  background: radial-gradient(circle at 50% -20%, rgba(243, 199, 90, 0.45), transparent 60%), linear-gradient(160deg, #062a1d, #0d5b3c);
+  border: 2px solid var(--bk-gold); box-shadow: var(--shadow);
+}
+.champ-banner::before, .champ-banner::after {
+  position: absolute; bottom: -30px; font-size: 110px; line-height: 1; color: rgba(255, 255, 255, 0.06); pointer-events: none;
+}
+.champ-banner::before { content: "♠"; left: -10px; }
+.champ-banner::after { content: "♥"; right: -10px; }
+.champ-kind {
+  display: inline-flex; align-items: center; gap: 6px; font-size: 0.8rem; font-weight: 800; letter-spacing: 0.05em; color: var(--bk-gold);
+}
+.champ-crown { display: inline-flex; }
+.champ-winners { margin: 8px 0 4px; padding: 0; list-style: none; }
+.champ-name { font-size: 1.6rem; font-weight: 800; line-height: 1.25; overflow-wrap: anywhere; text-shadow: 0 2px 6px rgba(0, 0, 0, 0.35); }
+.champ-name.mine::after { content: "（自分）"; font-size: 0.8rem; font-weight: normal; color: var(--on-felt-muted); }
+.champ-score { display: flex; align-items: baseline; justify-content: center; gap: 8px; margin-bottom: 12px; }
+.champ-score span { font-size: 0.75rem; font-weight: 800; color: var(--on-felt-muted); }
+.champ-score strong { font-size: 1.9rem; font-weight: 800; font-variant-numeric: tabular-nums; color: #fff; }
+.champ-score.plus strong { color: var(--plus-on-felt); }
+.champ-score.minus strong { color: var(--minus-on-felt); }
+.champ-foot {
+  position: relative; z-index: 1; display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap;
+  margin: 0 -18px; padding: 8px 18px; background: rgba(0, 0, 0, 0.25); font-size: 0.78rem; color: var(--on-felt-muted);
+}
+.champ-more { font-weight: 800; color: var(--bk-gold); }
 
 /* トーナメント：大会画面の見出しと同じ、深緑に金の縁と♠の透かし */
 .tm-card {
@@ -790,3 +853,9 @@ body[data-edit="1"] main { padding-bottom: 72px; }
 .guide .feature-text { margin: 0; font-size: 0.9rem; color: var(--ink-sub); }
 /* マイページのアイコン（深緑の丸に白い人の形） */
 .home-icon-me { background: var(--primary); color: #fff; }
+
+/* 手元だけのテストログイン（本番には出ない） */
+.dev-login { margin: 0; padding: 10px 12px; border: 2px dashed #d97706; border-radius: 10px; background: #fffbeb; }
+.dev-login-title { margin: 0 0 8px; font-size: 0.8rem; font-weight: 800; color: #b45309; }
+.dev-login-buttons { display: flex; gap: 8px; flex-wrap: wrap; }
+.dev-login-buttons .btn { flex: 1; min-width: 140px; }

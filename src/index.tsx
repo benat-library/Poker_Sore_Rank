@@ -2,7 +2,7 @@ import { Hono } from 'hono'
 import type { AppEnv } from './types'
 import { errorJson, parseId } from './lib/http'
 import rankings from './routes/rankings'
-import { rankingScores, scores } from './routes/scores'
+import { latestRingChampion, rankingScores, scores } from './routes/scores'
 import { renderer } from './pages/layout'
 import { HomePage } from './pages/home'
 import { listRankings } from './routes/rankings'
@@ -16,7 +16,7 @@ import { TournamentPage } from './pages/tournament'
 import stats from './routes/stats'
 import tournaments from './routes/tournaments'
 import { exportCsv } from './routes/export'
-import auth from './routes/auth'
+import auth, { devLoginEnabled } from './routes/auth'
 import { LoginPage } from './pages/login'
 import { HowtoPage } from './pages/howto'
 import { ErrorPage } from './pages/error'
@@ -38,7 +38,9 @@ app.use('*', renderer)
 
 // ログイン（ここまではログインしていなくても使える）
 app.route('/auth', auth)
-app.get('/login', (c) => c.render(<LoginPage error={c.req.query('error')} />, { title: 'ログイン | ポーカー部' }))
+app.get('/login', (c) =>
+  c.render(<LoginPage error={c.req.query('error')} devLogin={devLoginEnabled(c.env, c.req.url)} />, { title: 'ログイン | ポーカー部' })
+)
 // 新入生向けのポーカーの遊び方（ログイン画面からリンクする）
 app.get('/howto', optionalLogin, (c) => c.render(<HowtoPage />, { title: 'テキサスホールデムのルール・役・遊び方 | ポーカー部' }))
 
@@ -71,8 +73,13 @@ app.get('/ranking/:id/export', exportCsv)
 // ホームは、一覧をサーバーで埋めて返す（空の画面が一瞬見えないように）
 app.get('/', async (c) => {
   const me = c.get('user').discord_id
-  const [rankingList, tournamentList, half] = await Promise.all([listRankings(c.env.DB, me), listTournaments(c.env.DB, me), halfRanking(c.env.DB, null)])
-  return c.render(<HomePage data={{ rankings: rankingList, tournaments: tournamentList, half }} me={me} />, { title: 'ポーカー部 スコア集計', script: 'home.js' })
+  const [rankingList, tournamentList, half, champion] = await Promise.all([
+    listRankings(c.env.DB, me),
+    listTournaments(c.env.DB, me),
+    halfRanking(c.env.DB, null),
+    latestRingChampion(c.env.DB),
+  ])
+  return c.render(<HomePage data={{ rankings: rankingList, tournaments: tournamentList, half, champion }} me={me} />, { title: 'ポーカー部 スコア集計', script: 'home.js' })
 })
 app.get('/ranking/:id', async (c) => {
   const id = parseId(c.req.param('id'))

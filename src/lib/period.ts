@@ -26,6 +26,12 @@ export function graceEndOf(period: string): string {
   return new Date(Date.UTC(y, m, GRACE_DAYS)).toISOString().slice(0, 10)
 }
 
+// 確定する日（猶予期間の翌日。この日から入力・修正できなくなる）
+export function closedOnOf(period: string): string {
+  const [y, m] = period.split('-').map(Number)
+  return new Date(Date.UTC(y, m, GRACE_DAYS + 1)).toISOString().slice(0, 10)
+}
+
 // ランキングの状態を判定する（イベントは今のところ締めなし）
 export function statusOf(ranking: RankingInfo, today = todayJst()): RankingStatus {
   if (ranking.kind !== 'monthly' || !ranking.period) return 'open'

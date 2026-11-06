@@ -3,7 +3,7 @@ import type { AppEnv, LoginUser } from '../types'
 import { errorJson, parseId, readJson } from '../lib/http'
 import { validateAmount, validateFinalChips, validatePlayedOn, validateRebuys, validateUserName, type Result } from '../lib/validation'
 import { scoreFromChips } from '../lib/rules'
-import { checkWritable, type RankingInfo } from '../lib/period'
+import { checkWritable, closedOnOf, latestClosedPeriod, todayJst, type RankingInfo } from '../lib/period'
 import { auditStmt } from '../lib/audit'
 import { foul } from '../lib/foul'
 import { withStatus } from './rankings'
@@ -99,6 +99,31 @@ rankingScores.get('/:id/summary', async (c) => {
   if (!ranking) return errorJson(c, 404, 'ランキングが見つかりません')
   return c.json({ ranking: withStatus(ranking), rows: summary.results })
 })
+
+// 直近に確定した月間リングの1位（同点なら全員）。ホームのバナーに使う。記録が1件も無ければ null
+export async function latestRingChampion(db: D1Database, today = todayJst()) {
+  const { results } = await db
+    .prepare(
+      `WITH r AS (
+         SELECT id, name, period FROM rankings
+         WHERE kind = 'monthly' AND deleted_at IS NULL AND period <= ?
+         ORDER BY period DESC LIMIT 1
+       ), t AS (
+         SELECT ${PLAYER_KEY} AS player_key, MAX(${PLAYER_NAME}) AS user_name, SUM(s.amount) AS total
+         FROM scores s JOIN r ON s.ranking_id = r.id LEFT JOIN users u ON u.discord_id = s.discord_id
+         WHERE s.deleted_at IS NULL
+         GROUP BY player_key
+       )
+       SELECT r.id, r.name, r.period, t.player_key, t.user_name, t.total, (SELECT COUNT(*) FROM t) AS participants
+       FROM r JOIN t ON t.total = (SELECT MAX(total) FROM t)
+       ORDER BY t.user_name`
+    )
+    .bind(latestClosedPeriod(today))
+    .all<{ id: number; name: string; period: string; player_key: string; user_name: string; total: number; participants: number }>()
+  if (results.length === 0) return null
+  const { id, name, period, total, participants } = results[0]
+  return { id, name, total, participants, closed_on: closedOnOf(period), winners: results.map((w) => ({ player_key: w.player_key, user_name: w.user_name })) }
+}
 
 // 記録する人（discord_id：ひも付け先、user_name：記録上の名前、created_by：入力者。取り込み扱いの記録は空）
 type ScoreOwner = { discord_id: string | null; user_name: string; created_by: string | null }

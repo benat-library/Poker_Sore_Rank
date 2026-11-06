@@ -2,7 +2,7 @@ import { Hono } from 'hono'
 import type { AppEnv } from '../types'
 import { errorJson, parseId, readJson } from '../lib/http'
 import { validateKind, validatePeriod, validatePlayedOn, validateRankingName } from '../lib/validation'
-import { graceEndOf, lastDayOf, monthlyTitle, statusOf, todayJst, type RankingInfo } from '../lib/period'
+import { closedOnOf, graceEndOf, lastDayOf, monthlyTitle, statusOf, todayJst, type RankingInfo } from '../lib/period'
 import { REBUY_CHIPS, START_CHIPS } from '../lib/rules'
 import { auditStmt } from '../lib/audit'
 import { requireAdmin } from '../lib/session'
@@ -20,6 +20,8 @@ export function withStatus<T extends RankingInfo>(ranking: T, today = todayJst()
     date_min: isMonthly ? `${ranking.period}-01` : null,
     date_max: isMonthly ? lastDayOf(ranking.period!) : null,
     grace_end: isMonthly ? graceEndOf(ranking.period!) : null,
+    // 月間リングが確定する日
+    closed_on: isMonthly ? closedOnOf(ranking.period!) : null,
     // 月間リングのチップのルール（画面でScoreを計算して見せるために使う）
     chips: isMonthly ? { start: START_CHIPS, rebuy: REBUY_CHIPS } : null,
   }

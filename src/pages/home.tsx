@@ -1,16 +1,19 @@
 // ホーム画面。月間リング・イベント・トーナメント・半期ランキングを、サーバーで最初から埋めて返す（空の画面が一瞬見えないように）
 // 一覧は全件を描き、10件ずつの切り替えは home.js（common.js の paginateList）が見せる・隠すで行う。見た目を作るのはこのファイルだけ
 // リングや大会の作成・削除は管理者ページで行う
-import { amountClass, formatAmount, formatDate, formatDay } from '../lib/format'
+import { amountClass, formatAmount, formatDay, formatMonthDay } from '../lib/format'
+import { todayJst } from '../lib/period'
 import { ENTRY_STATUS as STATUS, IconEvent, IconHalf, IconRing, IconTournament, Pager, RingBadge, hiddenAfterFirstPage } from './parts'
 import type { listRankings } from '../routes/rankings'
 import type { listTournaments } from '../routes/tournaments'
 import type { halfRanking } from '../routes/stats'
+import type { latestRingChampion } from '../routes/scores'
 
 type Ranking = Awaited<ReturnType<typeof listRankings>>[number]
 type Tournament = Awaited<ReturnType<typeof listTournaments>>[number]
 type Half = Awaited<ReturnType<typeof halfRanking>>
-export type HomeData = { rankings: Ranking[]; tournaments: Tournament[]; half: Half }
+type Champion = Awaited<ReturnType<typeof latestRingChampion>>
+export type HomeData = { rankings: Ranking[]; tournaments: Tournament[]; half: Half; champion: Champion }
 
 // 見出し（左に丸いアイコン、下にひとこと説明。説明は無くてもよい）
 const SectionHead = ({ kind, title, sub, children }: { kind: string; title: string; sub?: string; children: unknown }) => (
@@ -25,24 +28,95 @@ const SectionHead = ({ kind, title, sub, children }: { kind: string; title: stri
   </div>
 )
 
-// 月間リング1件分
+// 月間リング1件分。状態はカードの枠と地の色で見せる
+//   開催中：緑の枠（いちばん目立つ） / 締め間近：オレンジの枠と地 / 確定：灰色の地で控えめに
 const RingItem = ({ r, i }: { r: Ranking; i: number }) => (
-  <li class="card list-item ring-card" hidden={hiddenAfterFirstPage(i)}>
+  <li class={`card list-item ring-card ring-${r.status}`} hidden={hiddenAfterFirstPage(i)}>
     <a class="list-link ring-link" href={`/ranking/${r.id}`}>
-      <div class="ring-main">
-        <div class="list-title">
-          <RingBadge status={r.status} />
-          {r.name}
+      <div class="ring-head">
+        <div class="ring-main">
+          <div class="list-title">
+            <RingBadge status={r.status} />
+            {r.name}
+          </div>
+          <RingDeadline r={r} />
+          <RingSaturdays r={r} />
         </div>
-        <div class="list-meta">作成日 {formatDate(r.created_at)}</div>
-      </div>
-      <div class="ring-count">
-        <strong>{r.participants}</strong>
-        <span>人参加</span>
+        <div class="ring-count">
+          <strong>{r.participants}</strong>
+          <span>人参加</span>
+        </div>
       </div>
     </a>
   </li>
 )
+
+// 2つの日付（YYYY-MM-DD）の差の日数
+const daysBetween = (from: string, to: string) => Math.round((Date.parse(to) - Date.parse(from)) / 86400000)
+
+// 締め切りの一言（開催中：次の土曜と残り回数 / 締め間近：入力できる最終日 / 確定：確定した日）
+const RingDeadline = ({ r }: { r: Ranking }) => {
+  if (!r.date_max || !r.grace_end || !r.closed_on) return null
+  const today = todayJst()
+  const left = (date: string) => {
+    const days = daysBetween(today, date)
+    return days <= 0 ? '今日まで' : `あと${days}日`
+  }
+  // 開催中は、次の土曜（定例リング）と今月の残り回数を出す
+  if (r.status === 'open' && r.period) {
+    const rest = saturdaysOf(r.period).filter((d) => d >= today)
+    if (rest.length === 0) {
+      return (
+        <div class="ring-deadline">
+          今月の開催は終了・入力・修正は{formatMonthDay(r.grace_end)}まで
+        </div>
+      )
+    }
+    const [m, d] = rest[0].slice(5).split('-').map(Number)
+    return (
+      <div class="ring-deadline">
+        {rest[0] === today ? '今日開催' : `次回 ${m}/${d}（土）`}
+        <strong>残り{rest.length}回</strong>
+      </div>
+    )
+  }
+  if (r.status === 'grace') {
+    return (
+      <div class="ring-deadline">
+        入力・修正は{formatMonthDay(r.grace_end)}まで<strong>{left(r.grace_end)}</strong>
+      </div>
+    )
+  }
+  return <div class="ring-deadline">{formatMonthDay(r.closed_on)}に確定</div>
+}
+
+// その月の土曜日（YYYY-MM-DD）の一覧
+const saturdaysOf = (period: string) => {
+  const [y, m] = period.split('-').map(Number)
+  const days: string[] = []
+  for (let d = new Date(Date.UTC(y, m - 1, 1)); d.getUTCMonth() === m - 1; d.setUTCDate(d.getUTCDate() + 1)) {
+    if (d.getUTCDay() === 6) days.push(d.toISOString().slice(0, 10))
+  }
+  return days
+}
+
+// 定例リング（毎週土曜）の進み具合。土曜ごとのマスが、過ぎた日から埋まっていく（今日が土曜ならそのマスを強調）
+// 確定したリングには出さない（カードを控えめにするため）
+const RingSaturdays = ({ r }: { r: Ranking }) => {
+  if (!r.period || r.status === 'closed') return null
+  const today = todayJst()
+  const sats = saturdaysOf(r.period)
+  const done = sats.filter((d) => d < today).length
+  return (
+    <div class="ring-sats" role="img" aria-label={`土曜の定例リング ${sats.length}回中${done}回終了`}>
+      <ol>
+        {sats.map((d) => (
+          <li class={d < today ? 'done' : d === today ? 'today' : undefined}>{`${Number(d.slice(5, 7))}/${Number(d.slice(8))}`}</li>
+        ))}
+      </ol>
+    </div>
+  )
+}
 
 // イベント1件分
 const EventItem = ({ r, i }: { r: Ranking & { event_status?: keyof typeof STATUS; capacity?: number | null; entered?: number }; i: number }) => {
@@ -108,12 +182,41 @@ const HalfTop = ({ half, me }: { half: Half; me: string }) => {
   )
 }
 
+// 直近に確定した月間リングの優勝バナー（1位の名前とScore。同点なら全員並べる）
+const ChampionBanner = ({ champion, me }: { champion: NonNullable<Champion>; me: string }) => (
+  <a class="champ-banner" href={`/ranking/${champion.id}`}>
+    <div class="champ-kind">
+      <span class="champ-crown" aria-hidden="true">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M3 7l4.5 4L12 4l4.5 7L21 7l-2 12H5z" />
+        </svg>
+      </span>
+      {champion.name} 優勝
+    </div>
+    <ul class="champ-winners">
+      {champion.winners.map((w) => (
+        <li class={w.player_key === me ? 'champ-name mine' : 'champ-name'}>{w.user_name}</li>
+      ))}
+    </ul>
+    <div class={`champ-score ${amountClass(champion.total)}`}>
+      <span>Score</span>
+      <strong>{formatAmount(champion.total)}</strong>
+    </div>
+    <div class="champ-foot">
+      <span>{formatMonthDay(champion.closed_on)}確定 ・ {champion.participants}人参加</span>
+      <span class="champ-more">順位表を見る ›</span>
+    </div>
+  </a>
+)
+
 export const HomePage = ({ data, me }: { data: HomeData; me: string }) => {
   const monthly = data.rankings.filter((r) => r.kind === 'monthly')
   const events = data.rankings.filter((r) => r.kind === 'event')
   const { half, tournaments } = data
   return (
     <>
+      {data.champion && <ChampionBanner champion={data.champion} me={me} />}
+
       <section class="home-section">
         <SectionHead kind="ring" title="月間リング" sub="毎月のリング戦。順位の確認とScoreの入力はここから">
           <IconRing />

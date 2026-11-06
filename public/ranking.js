@@ -95,10 +95,13 @@ function renderNotice(ranking) {
     return;
   }
   const [y, m] = ranking.period.split('-').map(Number);
-  notice.replaceChildren(
-    el('p', null, `${y}年${m}月のリング戦の記録が可能です。`),
-    el('p', null, `${monthDay(ranking.grace_end)}までは入力・修正できます。それ以降は確定となり、変更できません。`)
-  );
+  // 確定後は確定した日だけを伝える（入力できない旨は closed-note が出す）
+  notice.replaceChildren(...(ranking.status === 'closed'
+    ? [el('p', null, `${y}年${m}月のリング戦の結果は、${monthDay(ranking.closed_on)}に確定しました。`)]
+    : [
+      el('p', null, `${y}年${m}月のリング戦の記録が可能です。`),
+      el('p', null, `${monthDay(ranking.grace_end)}までは入力・修正できます。それ以降は確定となり、変更できません。`),
+    ]));
   notice.hidden = false;
 }
 

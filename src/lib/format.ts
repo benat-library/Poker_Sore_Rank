@@ -21,3 +21,9 @@ export function formatDay(date: string): string {
 export function formatDate(iso: string): string {
   return new Date(Date.parse(iso) + 9 * 60 * 60 * 1000).toISOString().slice(0, 10).replaceAll('-', '/')
 }
+
+// 「2026-11-04」を「11月4日」にする（public/common.js の monthDay と同じ）
+export function formatMonthDay(date: string): string {
+  const [, m, d] = date.split('-').map(Number)
+  return `${m}月${d}日`
+}

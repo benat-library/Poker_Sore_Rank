@@ -12,6 +12,8 @@ export type Bindings = {
   LOGIN_ALLOW_IDS?: string
   // Discord アプリの Client Secret（wrangler secret / .dev.vars で設定する）
   DISCORD_CLIENT_SECRET: string
+  // 手元だけのテストログイン（.dev.vars に DEV_LOGIN=1 と書いたときだけ。本番には絶対に設定しない）
+  DEV_LOGIN?: string
 }
 
 // ログイン中の部員

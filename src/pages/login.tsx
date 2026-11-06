@@ -6,7 +6,7 @@ const ERRORS: Record<string, string> = {
   failed: 'ログインに失敗しました。もう一度お試しください',
 }
 
-export const LoginPage = ({ error }: { error?: string }) => (
+export const LoginPage = ({ error, devLogin }: { error?: string; devLogin?: boolean }) => (
   <div class="login">
     <h1>ログイン</h1>
     <div class="card form-row">
@@ -14,6 +14,20 @@ export const LoginPage = ({ error }: { error?: string }) => (
       <a href="/auth/login" class="btn btn-discord">
         Discord でログイン
       </a>
+      {/* 手元だけのテストログイン（DEV_LOGIN=1 かつ localhost のときだけ出る） */}
+      {devLogin && (
+        <form method="post" action="/auth/dev-login" class="dev-login">
+          <p class="dev-login-title">テストモード（ローカル専用）</p>
+          <div class="dev-login-buttons">
+            <button type="submit" name="role" value="admin" class="btn">
+              管理者でログイン
+            </button>
+            <button type="submit" name="role" value="member" class="btn">
+              一般部員でログイン
+            </button>
+          </div>
+        </form>
+      )}
       <p class="note">42公式Discordサーバーのメンバーだけが利用できます。一度ログインすると、30日間はログインしたままになります。</p>
       {/* 新入生向けの注意（名前がintra名でないと、過去の記録や代理入力と名前が合わないため） */}
       <p class="login-notice">新入生の方は42公式Discordサーバーの名前をintra名に変更してからログインしてください。</p>

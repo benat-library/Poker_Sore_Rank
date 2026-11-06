@@ -9,3 +9,5 @@ CLUB_ROLE_ID=
 ADMIN_GUILD_ID=
 # 42のサーバーに入っていなくてもログインできる例外の Discord ユーザーID（カンマ区切り。空なら例外なし）
 LOGIN_ALLOW_IDS=
+# 手元だけのテストログイン（1 にするとログイン画面に「テストモード」のボタンが出る。localhost でしか動かない。本番には設定しない）
+DEV_LOGIN=1

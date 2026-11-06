@@ -151,6 +151,35 @@ auth.get('/callback', async (c) => {
   return c.redirect('/')
 })
 
+// ---- 手元だけのテストログイン（Discord を通さずにログインする）----
+// 本番で動かないよう、.dev.vars の DEV_LOGIN=1 と、localhost からのアクセスの両方がそろったときだけ使える
+const DEV_HOSTS = ['localhost', '127.0.0.1']
+export function devLoginEnabled(env: AppEnv['Bindings'], url: string): boolean {
+  return env.DEV_LOGIN === '1' && DEV_HOSTS.includes(new URL(url).hostname)
+}
+
+// テスト用の部員（管理者と一般部員の2人）
+const DEV_USERS = {
+  admin: { id: 'dev-admin', name: 'テスト管理者', isAdmin: 1 },
+  member: { id: 'dev-member', name: 'テスト部員', isAdmin: 0 },
+} as const
+
+auth.post('/dev-login', async (c) => {
+  if (!devLoginEnabled(c.env, c.req.url)) return c.notFound()
+  const body = await c.req.parseBody()
+  const user = body.role === 'admin' ? DEV_USERS.admin : DEV_USERS.member
+  const now = new Date().toISOString()
+  await c.env.DB.prepare(
+    `INSERT INTO users (discord_id, username, global_name, is_club_member, is_admin, created_at, last_login_at)
+     VALUES (?1, ?2, NULL, 1, ?3, ?4, ?4)
+     ON CONFLICT(discord_id) DO UPDATE SET is_admin = excluded.is_admin, last_login_at = excluded.last_login_at`
+  )
+    .bind(user.id, user.name, user.isAdmin, now)
+    .run()
+  await createSession(c, user.id)
+  return c.redirect('/', 303)
+})
+
 // ログアウト
 auth.post('/logout', async (c) => {
   await destroySession(c)

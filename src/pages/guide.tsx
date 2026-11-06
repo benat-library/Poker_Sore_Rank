@@ -154,17 +154,18 @@ export const GuidePage = () => (
           <li>月間リングは、その月のリング戦の記録が可能です。</li>
           <li>翌月{GRACE_DAYS}日までは入力・修正できます（猶予期間）。</li>
           <li>翌月{GRACE_DAYS + 1}日以降は確定となり、入力・修正・削除はできません。</li>
+          <li>確定すると、ホームの一番上にその月の優勝者（1位）と Score が出ます。</li>
         </ul>
-        <p>月間リング名の横のラベルで、今の状態がわかります。</p>
+        <p>月間リング名の横のラベルと、ホームのカードの色で、今の状態がわかります。</p>
         <ul>
           <li>
-            <span class="badge badge-open">開催中</span>その月の途中です
+            <span class="badge badge-open">開催中</span>その月の途中です。記録できます（緑の枠）
           </li>
           <li>
-            <span class="badge badge-grace">締め間近</span>月が終わり、猶予期間中です
+            <span class="badge badge-grace">締め間近</span>月が終わり、猶予期間中です。入力・修正はお早めに（オレンジの枠）
           </li>
           <li>
-            <span class="badge badge-closed">確定</span>結果が確定しました
+            <span class="badge badge-closed">確定</span>結果が確定しました。変更できません（灰色のカード）
           </li>
         </ul>
       </Item>
