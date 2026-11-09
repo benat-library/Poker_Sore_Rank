@@ -3,9 +3,8 @@ node_modules/
 .env
 .wrangler/
 dist/
-# ロゴ画像はリポジトリに含めない（無い場合は文字表記になる）
+# ロゴの元画像はリポジトリに含めない（サイトで使う public/logo.png はデプロイに必要なので含める）
 /42poker_logo.png
-/public/logo.png
 *:Zone.Identifier
 # 手元だけのバックアップ（古い Discord の ID を含むので絶対に上げない）
 /backup/

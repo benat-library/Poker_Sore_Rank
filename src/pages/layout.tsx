@@ -22,7 +22,7 @@ function userAttrs(edit?: boolean) {
   }
 }
 
-// 全ページ共通のヘッダー（ロゴ画像 public/logo.png が無い場合は文字表記にする。ナビはログイン中だけ表示）
+// 全ページ共通のヘッダー（ロゴ画像 public/logo.png を読み込めない場合は文字表記にする。ナビはログイン中だけ表示）
 function SiteHeader() {
   const c = useRequestContext()
   const user = c.get('user') as LoginUser | undefined
