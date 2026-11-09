@@ -70,7 +70,7 @@ export const TournamentPage = ({ id }: { id: number }) => (
           intra名で参加者を追加（編集モード）
           <input id="add-entry-name" type="text" maxlength={30} autocomplete="off" placeholder="intra名" />
           <small class="note">
-            intra名は完全一致で判定します（大文字・小文字も区別）。ログインしたことのある部員と一致すれば、その部員として登録します。募集上限を超えても追加できます
+            intra名は完全一致で判定します（大文字・小文字も区別）。ログインしたことのある部員と一致すれば、その部員として登録します（一致しないときは、追加の前に注意が出ます）。募集上限を超えても追加できます
           </small>
         </label>
         <button type="submit" class="btn">追加</button>

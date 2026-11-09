@@ -1,6 +1,7 @@
 import { Hono } from 'hono'
 import type { AppEnv } from '../types'
 import { errorJson, parseId, readJson } from '../lib/http'
+import { validateUserName } from '../lib/validation'
 import { auditStmt } from '../lib/audit'
 import { PLAYER_KEY } from './scores'
 
@@ -139,6 +140,16 @@ admin.get('/admins', async (c) => {
     'SELECT discord_id, username, last_login_at FROM users WHERE is_admin = 1 ORDER BY username'
   ).all()
   return c.json(results)
+})
+
+// intra名が、アプリにログインしたことのある部員と一致するかの確認（?name=。完全一致）
+// 参加者の手入力の前に、部員とひも付く名前かを画面で確かめるために使う
+// count が 1 ならその部員として登録される。0（ログインしたことがない）や 2 以上（同じ名前が複数）なら、ひも付かない参加者になる
+admin.get('/users/check', async (c) => {
+  const name = validateUserName(c.req.query('name'))
+  if (!name.ok) return errorJson(c, 400, name.error)
+  const row = await c.env.DB.prepare('SELECT COUNT(*) AS n FROM users WHERE username = ?').bind(name.value).first<{ n: number }>()
+  return c.json({ name: name.value, count: row?.n ?? 0 })
 })
 
 export default admin

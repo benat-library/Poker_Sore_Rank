@@ -122,6 +122,8 @@ document.getElementById('add-entry-form').addEventListener('submit', async (even
     return;
   }
   try {
+    // アプリにログインしたことのない名前なら、注意を出して確認する
+    if (!(await confirmLinkedUser(input.value.trim()))) return;
     const result = await api('POST', `/api/tournaments/${tournamentId}/entries`, { user_name: input.value.trim() });
     showMessage(`${result.name} さんを追加しました`);
     input.value = '';

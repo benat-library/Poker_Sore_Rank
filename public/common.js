@@ -414,3 +414,15 @@ const editToggle = isAdmin() && document.body.dataset.edit === '1'
   : null;
 if (editToggle) document.body.append(editToggle);
 applyAdminMode();
+
+// ---- 編集モードでの参加者の手入力（イベント・トーナメント共通） ----
+// 入力したintra名が、アプリにログインしたことのある部員と一致するかを確かめる
+// 一致しない（または同じ名前が複数いる）ときは注意を出し、追加してよいかを聞く。追加してよければ true
+async function confirmLinkedUser(name) {
+  const { count } = await api('GET', `/api/admin/users/check?name=${encodeURIComponent(name)}`);
+  if (count === 1) return true;
+  const reason = count === 0
+    ? `「${name}」は、ポーカーアプリにログインしたことのある部員の中に見つかりません。`
+    : `「${name}」という名前の部員が複数いるため、どの部員か判定できません。`;
+  return confirm(`⚠ 注意\n${reason}\nこのまま追加すると、部員とひも付かない参加者として登録されます（intra名のつづり・大文字小文字を確認してください）。\n\n追加しますか？`);
+}

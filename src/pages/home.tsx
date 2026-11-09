@@ -247,7 +247,7 @@ export const HomePage = ({ data, me }: { data: HomeData; me: string }) => {
 
       {/* トーナメント（1つもなければ見出しごと隠す） */}
       <section id="tournament-section" class="home-section" hidden={tournaments.length === 0}>
-        <SectionHead kind="tournament" title="トーナメント">
+        <SectionHead kind="tournament" title="1on1 トーナメント">
           <IconTournament />
         </SectionHead>
         <ul id="tournament-list" class="list">
