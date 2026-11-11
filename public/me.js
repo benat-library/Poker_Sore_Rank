@@ -6,7 +6,7 @@ const bodyEl = document.getElementById('me-body');
 
 // 成績の部分にある一覧を、10件ずつの切り替えにする
 function paginateBody() {
-  bodyEl.querySelectorAll('ul.list').forEach(paginateList);
+  bodyEl.querySelectorAll('ul.list').forEach((listEl) => paginateList(listEl));
 }
 
 // 選んだ人の成績の部分を、サーバーで作り直してもらって差し替える（URLは変えない）

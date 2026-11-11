@@ -1,18 +1,27 @@
 // 複数の画面で使う部品（サーバーで画面を作るとき用）
 
 // 一覧は10件ずつ表示する（public/common.js の PAGE_SIZE と同じ）
-// サーバーは全件を描き、11件目以降には hidden を付けておく。切り替えは common.js の paginateList が行う
+// サーバーは全件を描き、2ページ目以降には hidden を付けておく。切り替えは common.js の paginateList が行う
+// 件数を変える一覧は、ここの size と paginateList の size に同じ値を渡す
 export const PAGE_SIZE = 10
-export const hiddenAfterFirstPage = (index: number) => index >= PAGE_SIZE
+// 月間リングは1ページ半期分（6か月）ずつ表示する（public/home.js と同じ）
+// 新しい順に並んだ一覧を古い側から6件ずつ区切るので、各ページがちょうど半期になる。最初は最新のページを見せる
+export const RING_PAGE_SIZE = 6
+export const hiddenAfterFirstPage = (index: number, size = PAGE_SIZE) => index >= size
+// 末尾（いちばん古いもの）から size 件ずつ区切ったとき、最新のページ（先頭を含むページ）以外を隠す
+export const hiddenOutsideLatestPage = (index: number, count: number, size = PAGE_SIZE) =>
+  Math.floor((count - 1 - index) / size) !== Math.floor((count - 1) / size)
 
-// 1ページ目のページ番号タブ（11件以上のときだけ。押したときの処理は paginateList が付け直す）
-export const Pager = ({ count }: { count: number }) => {
-  const pages = Math.ceil(count / PAGE_SIZE)
+// 最初に開くページのページ番号タブ（2ページ以上になるときだけ。押したときの処理は paginateList が付け直す）
+// latest：古い順に番号を振り、最後のページ（最新）を選んだ状態にする
+export const Pager = ({ count, size = PAGE_SIZE, latest = false }: { count: number; size?: number; latest?: boolean }) => {
+  const pages = Math.ceil(count / size)
   if (pages <= 1) return null
+  const current = latest ? pages - 1 : 0
   return (
     <nav class="pager" aria-label="ページ切り替え">
       {Array.from({ length: pages }, (_, i) => (
-        <button type="button" class={i === 0 ? 'pager-btn active' : 'pager-btn'} aria-current={i === 0 ? 'page' : 'false'}>
+        <button type="button" class={i === current ? 'pager-btn active' : 'pager-btn'} aria-current={i === current ? 'page' : 'false'}>
           {i + 1}
         </button>
       ))}

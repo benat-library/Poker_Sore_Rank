@@ -177,18 +177,23 @@ function renderPaged(listEl, items, renderItem) {
   }));
 }
 
-// サーバーが全件を描いて返した一覧（11件目以降は hidden 付き）を、10件ずつ見せたり隠したりする
+// サーバーが全件を描いて返した一覧（2ページ目以降は hidden 付き）を、size 件ずつ見せたり隠したりする
 // 見た目はサーバー側（src/pages）だけで作り、ここでは表示の切り替えとページ番号のタブだけを扱う
-function paginateList(listEl) {
+// size を変えるときは、サーバー側の hiddenAfterFirstPage / Pager にも同じ値を渡すこと
+// fromEnd：一覧の末尾（いちばん古いもの）から size 件ずつ区切り、古い順に 1, 2, … とページ番号を振る。
+//   最初は最新のページ（最後の番号）を見せる（サーバー側の hiddenOutsideLatestPage / Pager の latest と対応）
+function paginateList(listEl, size = PAGE_SIZE, fromEnd = false) {
   const items = [...listEl.children];
-  const pages = Math.max(1, Math.ceil(items.length / PAGE_SIZE));
+  const pages = Math.max(1, Math.ceil(items.length / size));
+  // i 件目が何ページ目か（1始まり）
+  const pageOf = (i) => (fromEnd ? Math.floor((items.length - 1 - i) / size) + 1 : Math.floor(i / size) + 1);
   let pager = listEl.nextElementSibling;
   if (!pager || !pager.classList.contains('pager')) {
     pager = el('nav', { class: 'pager', 'aria-label': 'ページ切り替え' });
     listEl.after(pager);
   }
   const show = (page) => {
-    items.forEach((item, i) => { item.hidden = Math.floor(i / PAGE_SIZE) !== page - 1; });
+    items.forEach((item, i) => { item.hidden = pageOf(i) !== page; });
     pager.hidden = pages === 1;
     pager.replaceChildren(...Array.from({ length: pages }, (_, i) => {
       const n = i + 1;
@@ -204,7 +209,7 @@ function paginateList(listEl) {
       }, n);
     }));
   };
-  show(1);
+  show(fromEnd ? pages : 1);
 }
 
 // 「2026-10-03」を「10月3日」にする

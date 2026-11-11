@@ -1,9 +1,9 @@
 // ホーム画面。月間リング・イベント・トーナメント・半期ランキングを、サーバーで最初から埋めて返す（空の画面が一瞬見えないように）
-// 一覧は全件を描き、10件ずつの切り替えは home.js（common.js の paginateList）が見せる・隠すで行う。見た目を作るのはこのファイルだけ
+// 一覧は全件を描き、10件ずつ（月間リングは半期分の6件ずつ・最新の半期から表示）の切り替えは home.js（common.js の paginateList）が見せる・隠すで行う。見た目を作るのはこのファイルだけ
 // リングや大会の作成・削除は管理者ページで行う
 import { amountClass, formatAmount, formatDay, formatMonthDay } from '../lib/format'
 import { todayJst } from '../lib/period'
-import { ENTRY_STATUS as STATUS, IconEvent, IconHalf, IconRing, IconTournament, Pager, RingBadge, hiddenAfterFirstPage } from './parts'
+import { ENTRY_STATUS as STATUS, IconEvent, IconHalf, IconRing, IconTournament, Pager, RING_PAGE_SIZE, RingBadge, hiddenAfterFirstPage, hiddenOutsideLatestPage } from './parts'
 import type { listRankings } from '../routes/rankings'
 import type { listTournaments } from '../routes/tournaments'
 import type { halfRanking } from '../routes/stats'
@@ -30,8 +30,8 @@ const SectionHead = ({ kind, title, sub, children }: { kind: string; title: stri
 
 // 月間リング1件分。状態はカードの枠と地の色で見せる
 //   開催中：緑の枠（いちばん目立つ） / 締め間近：オレンジの枠と地 / 確定：灰色の地で控えめに
-const RingItem = ({ r, i }: { r: Ranking; i: number }) => (
-  <li class={`card list-item ring-card ring-${r.status}`} hidden={hiddenAfterFirstPage(i)}>
+const RingItem = ({ r, i, count }: { r: Ranking; i: number; count: number }) => (
+  <li class={`card list-item ring-card ring-${r.status}`} hidden={hiddenOutsideLatestPage(i, count, RING_PAGE_SIZE)}>
     <a class="list-link ring-link" href={`/ranking/${r.id}`}>
       <div class="ring-head">
         <div class="ring-main">
@@ -223,10 +223,10 @@ export const HomePage = ({ data, me }: { data: HomeData; me: string }) => {
         </SectionHead>
         <ul id="ranking-list" class="list">
           {monthly.map((r, i) => (
-            <RingItem r={r} i={i} />
+            <RingItem r={r} i={i} count={monthly.length} />
           ))}
         </ul>
-        <Pager count={monthly.length} />
+        <Pager count={monthly.length} size={RING_PAGE_SIZE} latest />
         <p id="empty" class="muted" hidden={monthly.length > 0}>
           まだ月間リングがありません
         </p>
