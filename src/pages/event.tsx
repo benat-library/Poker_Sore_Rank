@@ -17,7 +17,7 @@ export const EventPage = ({ id }: { id: number }) => (
       <a href="/" class="btn btn-small">← 一覧</a>
     </header>
 
-    {/* イベントの見出し（名前・開催日・状態・募集の埋まり具合） */}
+    {/* イベントの見出し（名前・開催日・説明文・状態・募集の埋まり具合） */}
     <section class="ev-hero">
       <div class="tm-hero-top">
         <span id="event-badge"></span>
@@ -28,6 +28,7 @@ export const EventPage = ({ id }: { id: number }) => (
         <span id="event-name">読み込み中…</span>
       </h1>
       <p id="event-date" class="ev-hero-meta"></p>
+      <p id="event-description" class="ev-hero-desc" hidden></p>
       <div class="tm-capacity">
         <div class="tm-capacity-text">
           <span>参加者</span>
@@ -39,7 +40,7 @@ export const EventPage = ({ id }: { id: number }) => (
       </div>
     </section>
 
-    <InfoForm label="イベント" />
+    <InfoForm label="イベント" description />
 
     <BlindStructure />
 

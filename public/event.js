@@ -23,6 +23,9 @@ function render() {
   document.getElementById('event-badge').replaceChildren(el('span', { class: `badge ${cls}` }, label));
   document.getElementById('event-name').textContent = ev.name;
   document.getElementById('event-date').textContent = ev.held_on ? `開催日 ${formatDay(ev.held_on)}` : '開催日 未定';
+  const desc = document.getElementById('event-description');
+  desc.textContent = ev.description || '';
+  desc.hidden = !ev.description;
   document.title = `${ev.name} | ポーカー部`;
   fillInfoForm(ev);
   showBlinds(ev);

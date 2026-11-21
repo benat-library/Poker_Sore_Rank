@@ -270,6 +270,8 @@ function fillInfoForm(info) {
   document.getElementById('info-name').value = info.name;
   document.getElementById('info-date').value = info.held_on || '';
   document.getElementById('info-capacity').value = info.capacity ?? '';
+  const desc = document.getElementById('info-description');
+  if (desc) desc.value = info.description || '';
 }
 
 // ---- ブラインドストラクチャー（イベント・トーナメント共通） ----
@@ -356,10 +358,13 @@ function bindInfoForm(path, done) {
     const button = form.querySelector('button[type="submit"]');
     button.disabled = true;
     try {
+      const desc = document.getElementById('info-description');
       await api('PUT', path, {
         name: document.getElementById('info-name').value,
         held_on: document.getElementById('info-date').value,
         capacity: document.getElementById('info-capacity').value,
+        // 説明文の欄があるとき（イベント）だけ送る
+        ...(desc ? { description: desc.value } : {}),
       });
       showMessage('保存しました');
       form.closest('details').open = false;

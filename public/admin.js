@@ -381,7 +381,11 @@ function describeLog(log, before, after) {
     if (log.action === 'delete' && !b.entry) return `${name}を削除`;
     if (log.action === 'restore') return `${name}を元に戻した`;
     if (log.action === 'update' && a.blinds) return `イベント${name}のブラインドを変更（1レベル${a.blinds.minutes}分・${a.blinds.levels.length}段階）`;
-    if (log.action === 'update' && a.info) return `イベント${name}の情報を変更（${a.info.name}・${a.info.held_on ? monthDay(a.info.held_on) : '開催日未定'}・${a.info.capacity ? `上限${a.info.capacity}人` : '上限なし'}）`;
+    if (log.action === 'update' && a.info) {
+      // 説明文が変わったときは、そのことも書く（本文は長いので出さない）
+      const descChanged = 'description' in a.info && (a.info.description ?? null) !== (b.description ?? null);
+      return `イベント${name}の情報を変更（${a.info.name}・${a.info.held_on ? monthDay(a.info.held_on) : '開催日未定'}・${a.info.capacity ? `上限${a.info.capacity}人` : '上限なし'}${descChanged ? '・説明文を変更' : ''}）`;
+    }
     // イベントの申し込み・進行
     if (log.action === 'create' && a.entry) return `イベント${name}に ${a.entry.user_name} さんの申し込みを追加`;
     if (log.action === 'delete' && b.entry) return `イベント${name}の ${b.entry.user_name} さんの申し込みを取り消し`;

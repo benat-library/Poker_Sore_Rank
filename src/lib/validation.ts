@@ -110,6 +110,18 @@ export function validateEventInfo(
   return { ok: true, value: { name: name.value, held_on: heldOn, capacity } }
 }
 
+// イベントの説明文（1000文字まで。空なら null＝説明なし、送られてこなければ undefined＝変えない）
+export const MAX_DESCRIPTION = 1000
+export function validateDescription(value: unknown): Result<string | null | undefined> {
+  if (value === undefined) return { ok: true, value: undefined }
+  if (value === null) return { ok: true, value: null }
+  if (typeof value !== 'string') return { ok: false, error: '説明文の形式が正しくありません' }
+  // 改行は \n にそろえ、前後の空白・空行は取る
+  const text = value.replace(/\r\n?/g, '\n').trim()
+  if ([...text].length > MAX_DESCRIPTION) return { ok: false, error: `説明文は${MAX_DESCRIPTION}文字以内で入力してください` }
+  return { ok: true, value: text === '' ? null : text }
+}
+
 // ブラインドの編集：1レベルの時間（1〜99分）と段階（[[SB, BB], ...]。1〜40段階、各 1〜1000000 の整数で BB は SB 以上）
 // levels が null なら標準の段階に戻す
 export function validateBlinds(body: Record<string, unknown>): Result<{ minutes: number; levels: [number, number][] | null }> {

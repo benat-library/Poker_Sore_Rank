@@ -99,8 +99,9 @@ a { color: #1d4ed8; }
 .day-tabs .pager-btn { font-size: 0.9rem; }
 
 /* フォーム */
+textarea { resize: vertical; font-family: inherit; line-height: 1.5; }
 .form-row { display: flex; flex-direction: column; gap: 10px; }
-input[type="text"], input[type="search"], input[type="date"], input[inputmode="numeric"] {
+input[type="text"], input[type="search"], input[type="date"], input[inputmode="numeric"], textarea {
   width: 100%;
   min-height: 48px;
   padding: 10px 12px;
@@ -733,6 +734,8 @@ body[data-edit="1"] main { padding-bottom: 72px; }
 .ev-hero-title { display: flex; align-items: center; gap: 10px; margin: 6px 0 2px; font-size: 1.5rem; overflow-wrap: anywhere; }
 .ev-star { flex-shrink: 0; color: var(--bk-gold); }
 .ev-hero-meta { margin: 0; font-size: 0.9rem; color: #ddd6fe; }
+/* 説明文（改行をそのまま出す） */
+.ev-hero-desc { position: relative; margin: 10px 0 0; font-size: 0.9rem; line-height: 1.6; white-space: pre-wrap; overflow-wrap: anywhere; color: #f5f3ff; }
 /* 開催中：残っている人（編集モードではタップで「飛んだ」を記録） */
 .ev-remaining .tm-entry { padding: 0; }
 .ev-remaining .tm-entry > .tm-entry-name { padding: 9px 14px; }

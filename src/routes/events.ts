@@ -1,7 +1,7 @@
 import { Hono } from 'hono'
 import type { AppEnv } from '../types'
 import { errorJson, parseId, readJson } from '../lib/http'
-import { validateBlinds, validateEventInfo, validateUserName } from '../lib/validation'
+import { validateBlinds, validateDescription, validateEventInfo, validateUserName } from '../lib/validation'
 import { blindLevelsOf } from '../lib/rules'
 import { auditStmt } from '../lib/audit'
 import { requireAdmin } from '../lib/session'
@@ -17,6 +17,7 @@ type EventInfo = {
   name: string
   held_on: string | null
   capacity: number | null
+  description: string | null
   blind_minutes: number
   blind_levels: string | null
   status: 'entry' | 'running' | 'finished'
@@ -25,7 +26,7 @@ type Entry = { id: number; discord_id: string | null; user_name: string; place: 
 
 // 参加者の表示名（本人の申し込みは最新のニックネーム、手入力の参加者は入力した名前）
 const ENTRY_NAME = 'COALESCE(u.username, e.user_name)'
-const EVENT_COLUMNS = 'id, name, held_on, capacity, blind_minutes, blind_levels, event_status AS status'
+const EVENT_COLUMNS = 'id, name, held_on, capacity, description, blind_minutes, blind_levels, event_status AS status'
 
 function findEvent(db: D1Database, id: number) {
   return db
@@ -57,7 +58,7 @@ events.get('/:id', async (c) => {
   return c.json({ event: { ...ev, blind_levels: blindLevelsOf(ev.blind_levels) }, entries: entries.results, can_enter: canEnter })
 })
 
-// イベントの情報（名前・開催日・募集上限）の変更（管理者だけ。上限は今の参加人数より少なくしてもよい）
+// イベントの情報（名前・開催日・募集上限・説明文）の変更（管理者だけ。上限は今の参加人数より少なくしてもよい）
 events.put('/:id', requireAdmin, async (c) => {
   const id = parseId(c.req.param('id'))
   if (id === null) return errorJson(c, 400, 'イベントIDが正しくありません')
@@ -65,13 +66,18 @@ events.put('/:id', requireAdmin, async (c) => {
   if (!body) return errorJson(c, 400, 'リクエストの形式が正しくありません')
   const info = validateEventInfo(body, 'イベント名')
   if (!info.ok) return errorJson(c, 400, info.error)
+  const desc = validateDescription(body.description)
+  if (!desc.ok) return errorJson(c, 400, desc.error)
   const ev = await findEvent(c.env.DB, id)
   if (!ev) return errorJson(c, 404, 'イベントが見つかりません')
-  const v = info.value
+  // 説明文が送られてこなかったときは、今の説明文をそのまま残す
+  const v = { ...info.value, description: desc.value === undefined ? ev.description : desc.value }
   const actor = c.get('user').discord_id
   await c.env.DB.batch([
-    c.env.DB.prepare('UPDATE rankings SET name = ?, held_on = ?, capacity = ? WHERE id = ?').bind(v.name, v.held_on, v.capacity, id),
-    auditStmt(c.env.DB, actor, 'update', 'ranking', id, { name: ev.name, held_on: ev.held_on, capacity: ev.capacity }, { info: v }),
+    c.env.DB.prepare('UPDATE rankings SET name = ?, held_on = ?, capacity = ?, description = ? WHERE id = ?')
+      .bind(v.name, v.held_on, v.capacity, v.description, id),
+    auditStmt(c.env.DB, actor, 'update', 'ranking', id,
+      { name: ev.name, held_on: ev.held_on, capacity: ev.capacity, description: ev.description }, { info: v }),
   ])
   return c.json({ ok: true, ...v })
 })
