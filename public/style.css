@@ -100,7 +100,7 @@ a { color: #1d4ed8; }
 
 /* フォーム */
 .form-row { display: flex; flex-direction: column; gap: 10px; }
-input[type="text"], input[type="date"], input[inputmode="numeric"] {
+input[type="text"], input[type="search"], input[type="date"], input[inputmode="numeric"] {
   width: 100%;
   min-height: 48px;
   padding: 10px 12px;
@@ -567,6 +567,7 @@ body[data-edit="1"] main { padding-bottom: 72px; }
 /* 管理者ページ */
 .admin-names { margin: 0 0 8px; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 4px 16px; }
 .admin-sub { margin: 16px 0 8px; font-size: 0.95rem; color: var(--on-felt); }
+.log-search { margin: 0 0 10px; }
 .log-list { margin: 0; padding: 4px 16px; list-style: none; }
 .log-row { padding: 10px 0; border-bottom: 1px solid var(--line); }
 .log-row:last-child { border-bottom: none; }

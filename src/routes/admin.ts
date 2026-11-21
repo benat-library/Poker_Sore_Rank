@@ -11,11 +11,32 @@ const admin = new Hono<AppEnv>()
 const LOG_PAGE = 20
 
 // 操作履歴（新しい順に20件ずつ。?page= でページを指定する。1ページ目から）
+// ?q= を付けると、操作者・対象の名前・記録の持ち主・変更前後の内容のどれかにその文字を含むものだけを返す
 // 対象の名前（ランキング名・大会名・記録の持ち主）も一緒に返し、画面で読める文にする
+const LOG_FROM = `FROM audit_logs l
+     LEFT JOIN users a ON a.discord_id = l.actor_discord_id
+     LEFT JOIN rankings rk ON l.target_type = 'ranking' AND rk.id = l.target_id
+     LEFT JOIN scores sc ON l.target_type = 'score' AND sc.id = l.target_id
+     LEFT JOIN rankings sr ON sr.id = sc.ranking_id
+     LEFT JOIN users su ON su.discord_id = sc.discord_id
+     LEFT JOIN tournaments t ON l.target_type = 'tournament' AND t.id = l.target_id
+     LEFT JOIN users cu ON l.action = 'claim' AND cu.discord_id = json_extract(l.after_json, '$.discord_id')`
+
+// 検索する列（どれか1つに含まれていれば当てはまる）
+const LOG_SEARCH_COLUMNS = [
+  'a.username', 'l.actor_discord_id', 'rk.name', 'sr.name', 't.name',
+  'su.username', 'sc.user_name', 'cu.username', 'l.before_json', 'l.after_json',
+]
+
 admin.get('/logs', async (c) => {
   const raw = c.req.query('page')
   const page = raw === undefined ? 1 : parseId(raw)
   if (page === null) return errorJson(c, 400, 'ページの指定が正しくありません')
+  const q = (c.req.query('q') ?? '').trim().slice(0, 50)
+  // % と _ はそのままだと「何でも当てはまる」記号になるので、\ を付けて普通の文字として扱う
+  const pattern = `%${q.replace(/[\\%_]/g, (m) => `\\${m}`)}%`
+  const where = q ? `WHERE (${LOG_SEARCH_COLUMNS.map((col) => `${col} LIKE ?1 ESCAPE '\\'`).join(' OR ')})` : ''
+  const binds = q ? [pattern] : []
   const [list, count] = await c.env.DB.batch([c.env.DB.prepare(
     `SELECT l.id, l.action, l.target_type, l.target_id, l.before_json, l.after_json, l.created_at,
        COALESCE(a.username, l.actor_discord_id) AS actor,
@@ -23,21 +44,15 @@ admin.get('/logs', async (c) => {
        COALESCE(su.username, sc.user_name) AS score_player,
        sc.played_on AS score_played_on,
        cu.username AS claim_owner
-     FROM audit_logs l
-     LEFT JOIN users a ON a.discord_id = l.actor_discord_id
-     LEFT JOIN rankings rk ON l.target_type = 'ranking' AND rk.id = l.target_id
-     LEFT JOIN scores sc ON l.target_type = 'score' AND sc.id = l.target_id
-     LEFT JOIN rankings sr ON sr.id = sc.ranking_id
-     LEFT JOIN users su ON su.discord_id = sc.discord_id
-     LEFT JOIN tournaments t ON l.target_type = 'tournament' AND t.id = l.target_id
-     LEFT JOIN users cu ON l.action = 'claim' AND cu.discord_id = json_extract(l.after_json, '$.discord_id')
+     ${LOG_FROM}
+     ${where}
      ORDER BY l.id DESC
-     LIMIT ? OFFSET ?`
-  ).bind(LOG_PAGE, (page - 1) * LOG_PAGE),
-    c.env.DB.prepare('SELECT COUNT(*) AS n FROM audit_logs'),
+     LIMIT ${LOG_PAGE} OFFSET ${(page - 1) * LOG_PAGE}`
+  ).bind(...binds),
+    c.env.DB.prepare(q ? `SELECT COUNT(*) AS n ${LOG_FROM} ${where}` : 'SELECT COUNT(*) AS n FROM audit_logs').bind(...binds),
   ])
   const total = (count.results[0] as { n: number }).n
-  return c.json({ logs: list.results, page, pages: Math.max(1, Math.ceil(total / LOG_PAGE)) })
+  return c.json({ logs: list.results, page, pages: Math.max(1, Math.ceil(total / LOG_PAGE)), total, q })
 })
 
 // 削除したもの（リング・イベント、記録、大会）。記録は、リングが残っているものの新しい順に100件まで

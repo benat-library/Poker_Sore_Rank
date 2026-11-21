@@ -108,6 +108,10 @@ export const AdminPage = () => (
         <h2>操作履歴</h2>
       </summary>
       <p class="note">誰が・いつ・何をしたかの記録です（新しい順に20件ずつ）。</p>
+      <form id="log-search" class="log-search" role="search">
+        <input id="log-q" type="search" maxlength={50} placeholder="名前・リング名・大会名で探す" aria-label="操作履歴を検索" autocomplete="off" />
+      </form>
+      <p id="log-count" class="note" hidden></p>
       <ul id="log-list" class="card log-list"></ul>
       <nav id="log-pager" class="pager" aria-label="操作履歴のページ切り替え" hidden></nav>
     </details>

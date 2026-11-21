@@ -283,21 +283,45 @@ async function restore(item) {
 
 const logList = document.getElementById('log-list');
 const logPager = document.getElementById('log-pager');
+const logQuery = document.getElementById('log-q');
+const logCount = document.getElementById('log-count');
 let logPage = 1;
+let logRequest = 0; // 古い検索結果が後から届いても上書きしないための番号
 
-// 指定したページを読み込む（省略すると今のページを読み直す）
+// 指定したページを読み込む（省略すると今のページを読み直す）。検索欄に文字があれば、それを含むものだけ
 async function loadLogs(page = logPage) {
+  const q = logQuery.value.trim();
+  const request = ++logRequest;
   try {
-    const data = await api('GET', `/api/admin/logs?page=${page}`);
+    const params = new URLSearchParams({ page: String(page) });
+    if (q) params.set('q', q);
+    const data = await api('GET', `/api/admin/logs?${params}`);
+    if (request !== logRequest) return;
     // 件数が減って今のページが無くなったときは、最後のページを出す
     if (data.logs.length === 0 && data.page > data.pages) return loadLogs(data.pages);
     logPage = data.page;
-    logList.replaceChildren(...(data.logs.length ? data.logs.map(renderLog) : [el('li', { class: 'muted' }, 'まだ操作履歴がありません')]));
+    const empty = q ? `「${q}」に当てはまる操作履歴はありません` : 'まだ操作履歴がありません';
+    logList.replaceChildren(...(data.logs.length ? data.logs.map(renderLog) : [el('li', { class: 'muted' }, empty)]));
+    logCount.hidden = !q;
+    logCount.textContent = q ? `「${q}」の検索結果：${data.total}件` : '';
     renderLogPager(data.page, data.pages);
   } catch (e) {
     showMessage(e.message, true);
   }
 }
+
+// 入力が止まって少し経ったら、1ページ目から検索し直す
+let logSearchTimer;
+logQuery.addEventListener('input', () => {
+  clearTimeout(logSearchTimer);
+  logSearchTimer = setTimeout(() => loadLogs(1), 300);
+});
+// Enter を押したときは待たずにすぐ検索する
+document.getElementById('log-search').addEventListener('submit', (e) => {
+  e.preventDefault();
+  clearTimeout(logSearchTimer);
+  loadLogs(1);
+});
 
 // ページ番号のタブ（ページが多いときは、最初・最後と今のページの前後2つだけ出す）
 function renderLogPager(page, pages) {
