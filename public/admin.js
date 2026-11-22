@@ -30,6 +30,7 @@ document.querySelectorAll('.segment').forEach((btn) => {
     document.getElementById('name-field').hidden = kind !== 'event';
     document.getElementById('held-on-field').hidden = kind !== 'event';
     document.getElementById('capacity-field').hidden = kind !== 'event';
+    document.getElementById('description-field').hidden = kind !== 'event';
     document.getElementById('event-note').hidden = kind !== 'event';
   });
 });
@@ -43,13 +44,15 @@ document.getElementById('create-form').addEventListener('submit', async (event) 
   try {
     const heldOnInput = document.getElementById('ranking-held-on');
     const capacityInput = document.getElementById('ranking-capacity');
+    const descriptionInput = document.getElementById('ranking-description');
     const body = kind === 'monthly'
       ? { kind, period: periodInput.value }
-      : { kind, name: nameInput.value, held_on: heldOnInput.value, capacity: capacityInput.value };
+      : { kind, name: nameInput.value, held_on: heldOnInput.value, capacity: capacityInput.value, description: descriptionInput.value };
     const created = await api('POST', '/api/rankings', body);
     nameInput.value = '';
     heldOnInput.value = '';
     capacityInput.value = '';
+    descriptionInput.value = '';
     showMessage(`「${created.name}」を作成しました`);
     loadRankings();
     loadLogs(1);
@@ -69,12 +72,16 @@ document.getElementById('tournament-form').addEventListener('submit', async (eve
   const nameEl = document.getElementById('tournament-name');
   const dateEl = document.getElementById('tournament-date');
   const capacityEl = document.getElementById('tournament-capacity');
+  const descriptionEl = document.getElementById('tournament-description');
   button.disabled = true;
   try {
-    const created = await api('POST', '/api/tournaments', { name: nameEl.value, held_on: dateEl.value, capacity: capacityEl.value });
+    const created = await api('POST', '/api/tournaments', {
+      name: nameEl.value, held_on: dateEl.value, capacity: capacityEl.value, description: descriptionEl.value,
+    });
     nameEl.value = '';
     dateEl.value = '';
     capacityEl.value = '';
+    descriptionEl.value = '';
     showMessage(`「${created.name}」を作成しました`);
     loadTournaments();
     loadLogs(1);

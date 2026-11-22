@@ -89,17 +89,22 @@ tournaments.post('/', requireAdmin, async (c) => {
     if (!Number.isInteger(n) || n < 2 || n > 256) return errorJson(c, 400, '募集上限は2〜256人の整数で入力してください')
     capacity = n
   }
+  // 説明文（空なら説明なし）
+  const desc = validateDescription(body.description)
+  if (!desc.ok) return errorJson(c, 400, desc.error)
+  const description = desc.value ?? null
 
   const actor = c.get('user').discord_id
   const [inserted] = await c.env.DB.batch<{ id: number }>([
-    c.env.DB.prepare('INSERT INTO tournaments (name, held_on, capacity, created_at, created_by) VALUES (?, ?, ?, ?, ?) RETURNING id').bind(
+    c.env.DB.prepare('INSERT INTO tournaments (name, held_on, capacity, description, created_at, created_by) VALUES (?, ?, ?, ?, ?, ?) RETURNING id').bind(
       name.value,
       heldOn,
       capacity,
+      description,
       new Date().toISOString(),
       actor
     ),
-    auditStmt(c.env.DB, actor, 'create', 'tournament', null, null, { name: name.value, held_on: heldOn, capacity }),
+    auditStmt(c.env.DB, actor, 'create', 'tournament', null, null, { name: name.value, held_on: heldOn, capacity, description }),
   ])
   return c.json({ id: inserted.results[0].id, name: name.value, held_on: heldOn, capacity, status: 'entry' }, 201)
 })

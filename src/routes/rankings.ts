@@ -1,7 +1,7 @@
 import { Hono } from 'hono'
 import type { AppEnv } from '../types'
 import { errorJson, parseId, readJson } from '../lib/http'
-import { validateKind, validatePeriod, validatePlayedOn, validateRankingName } from '../lib/validation'
+import { validateDescription, validateKind, validatePeriod, validatePlayedOn, validateRankingName } from '../lib/validation'
 import { closedOnOf, graceEndOf, lastDayOf, monthlyTitle, statusOf, todayJst, type RankingInfo } from '../lib/period'
 import { REBUY_CHIPS, START_CHIPS } from '../lib/rules'
 import { auditStmt } from '../lib/audit'
@@ -63,6 +63,7 @@ rankings.post('/', requireAdmin, async (c) => {
   let period: string | null = null
   let heldOn: string | null = null
   let capacity: number | null = null
+  let description: string | null = null
   if (kind.value === 'monthly') {
     const p = validatePeriod(body.period)
     if (!p.ok) return errorJson(c, 400, p.error)
@@ -88,6 +89,10 @@ rankings.post('/', requireAdmin, async (c) => {
       if (!Number.isInteger(n) || n < 2 || n > 256) return errorJson(c, 400, '募集上限は2〜256人の整数で入力してください')
       capacity = n
     }
+    // イベントの説明文（空なら説明なし）
+    const desc = validateDescription(body.description)
+    if (!desc.ok) return errorJson(c, 400, desc.error)
+    description = desc.value ?? null
   }
 
   const createdAt = new Date().toISOString()
@@ -96,17 +101,18 @@ rankings.post('/', requireAdmin, async (c) => {
     // 作成と操作履歴の記録を1つのトランザクションで行う
     const [inserted] = await c.env.DB.batch<{ id: number }>([
       c.env.DB.prepare(
-        'INSERT INTO rankings (name, kind, period, held_on, capacity, created_at, created_by) VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING id'
+        'INSERT INTO rankings (name, kind, period, held_on, capacity, description, created_at, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?) RETURNING id'
       ).bind(
         name,
         kind.value,
         period,
         heldOn,
         capacity,
+        description,
         createdAt,
         actor
       ),
-      auditStmt(c.env.DB, actor, 'create', 'ranking', null, null, { name, kind: kind.value, period, held_on: heldOn, capacity }),
+      auditStmt(c.env.DB, actor, 'create', 'ranking', null, null, { name, kind: kind.value, period, held_on: heldOn, capacity, description }),
     ])
     const id = inserted.results[0].id
     return c.json(withStatus({ id, name, kind: kind.value, period, held_on: heldOn, capacity, event_status: 'entry', created_at: createdAt, participants: 0, winner: null, entered: 0 }), 201)

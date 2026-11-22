@@ -42,6 +42,11 @@ export const AdminPage = () => (
         募集上限（人数・空欄なら上限なし）
         <input id="ranking-capacity" type="text" inputmode="numeric" pattern="[0-9]*" maxlength={3} placeholder="例：9" autocomplete="off" />
       </label>
+      <label id="description-field" hidden>
+        説明文（空欄なら表示しない）
+        <textarea id="ranking-description" rows={4} maxlength={1000} placeholder="例：場所・持ち物・ルールなど"></textarea>
+        <small class="note">イベント画面の見出しの下に出ます。改行はそのまま表示されます（1000文字まで）。あとからイベント画面の編集モードでも変えられます</small>
+      </label>
       <small id="event-note" class="note" hidden>
         作成すると申し込みの受付が始まります。当日はイベントの画面で編集モードをオンにして「受付を締め切って開始する」を押し、飛んだ（抜けた）人を順にタップすると順位が決まります。
       </small>
@@ -61,6 +66,11 @@ export const AdminPage = () => (
       <label>
         募集上限（人数・空欄なら上限なし）
         <input id="tournament-capacity" type="text" inputmode="numeric" pattern="[0-9]*" maxlength={3} placeholder="例：16" autocomplete="off" />
+      </label>
+      <label>
+        説明文（空欄なら表示しない）
+        <textarea id="tournament-description" rows={4} maxlength={1000} placeholder="例：場所・持ち物・ルールなど"></textarea>
+        <small class="note">大会画面の見出しに出ます。改行はそのまま表示されます（1000文字まで）。あとから大会画面の編集モードでも変えられます</small>
       </label>
       <button type="submit" class="btn btn-primary">作成</button>
     </form>

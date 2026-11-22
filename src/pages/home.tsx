@@ -144,12 +144,12 @@ const EventItem = ({ r, i }: { r: Ranking & { event_status?: keyof typeof STATUS
   )
 }
 
-// トーナメント1件分
+// 1on1 トーナメント1件分（赤と黒の対決風。終わった大会は色を落とす）
 const TournamentItem = ({ t, i }: { t: Tournament; i: number }) => {
   const [label, cls] = STATUS[t.status]
   const entries = t.capacity ? `参加 ${t.entries} / ${t.capacity}人` : `参加 ${t.entries}人`
   return (
-    <li class="tm-card" hidden={hiddenAfterFirstPage(i)}>
+    <li class={t.status === 'finished' ? 'tm-card tm-card-done' : 'tm-card'} hidden={hiddenAfterFirstPage(i)}>
       <a class="tm-card-link" href={`/tournament/${t.id}`}>
         <div class="tm-card-top">
           <span class={`badge ${cls}`}>{label}</span>
