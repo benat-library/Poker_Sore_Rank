@@ -1,5 +1,5 @@
 // 大会の情報（名前・開催日・募集上限）を変える欄（イベント・トーナメント共通。編集モードでだけ表示する）
-// description を付けると説明文の欄も出す（今はイベントだけ）
+// description を付けると説明文の欄も出す
 // 入力値の読み込みと保存は common.js の fillInfoForm / bindInfoForm が行う
 export const InfoForm = ({ label, description = false }: { label: string; description?: boolean }) => (
   <details class="admin-only fold-section info-fold">

@@ -150,7 +150,7 @@ function renderTournament(t) {
 }
 
 async function deleteTournament(t) {
-  if (!confirm(`大会「${t.name}」を削除しますか？
+  if (!confirm(`1on1 トーナメント「${t.name}」を削除しますか？
 参加者と対戦結果も一緒に画面から消えます（「削除したものを戻す」から元に戻せます）。`)) return;
   try {
     await api('DELETE', `/api/tournaments/${t.id}`);
@@ -234,7 +234,7 @@ async function loadDeleted() {
       meta: t.held_on ? `開催日 ${formatDay(t.held_on)}` : '開催日 未定',
       deleted: t,
       type: 'tournament',
-      confirmText: `大会「${t.name}」を元に戻しますか？`,
+      confirmText: `1on1 トーナメント「${t.name}」を元に戻しますか？`,
     }));
   } catch (e) {
     showMessage(e.message, true);
@@ -415,15 +415,19 @@ function describeLog(log, before, after) {
   }
 
   if (log.target_type === 'tournament') {
-    if (log.action === 'create') return a.entry ? `大会${name}に ${a.entry.user_name} さんの申し込みを追加` : `大会${name}を作成`;
-    if (log.action === 'delete') return b.entry ? `大会${name}の ${b.entry.user_name} さんの申し込みを取り消し` : `大会${name}を削除`;
-    if (log.action === 'restore') return `大会${name}を元に戻した`;
+    if (log.action === 'create') return a.entry ? `1on1 トーナメント${name}に ${a.entry.user_name} さんの申し込みを追加` : `1on1 トーナメント${name}を作成`;
+    if (log.action === 'delete') return b.entry ? `1on1 トーナメント${name}の ${b.entry.user_name} さんの申し込みを取り消し` : `1on1 トーナメント${name}を削除`;
+    if (log.action === 'restore') return `1on1 トーナメント${name}を元に戻した`;
     if (log.action === 'update') {
-      if (a.blinds) return `大会${name}のブラインドを変更（1レベル${a.blinds.minutes}分・${a.blinds.levels.length}段階）`;
-      if (a.info) return `大会${name}の情報を変更（${a.info.name}・${a.info.held_on ? monthDay(a.info.held_on) : '開催日未定'}・${a.info.capacity ? `上限${a.info.capacity}人` : '上限なし'}）`;
-      if ('match' in a) return a.winner === null ? `大会${name}の対戦結果を取り消し` : `大会${name}の対戦結果を入力`;
-      if (a.status === 'running') return `大会${name}の組み合わせを作成`;
-      if (a.status === 'entry') return `大会${name}を申し込み受付に戻した`;
+      if (a.blinds) return `1on1 トーナメント${name}のブラインドを変更（1レベル${a.blinds.minutes}分・${a.blinds.levels.length}段階）`;
+      if (a.info) {
+        // 説明文が変わったときは、そのことも書く（本文は長いので出さない）
+        const descChanged = 'description' in a.info && (a.info.description ?? null) !== (b.description ?? null);
+        return `1on1 トーナメント${name}の情報を変更（${a.info.name}・${a.info.held_on ? monthDay(a.info.held_on) : '開催日未定'}・${a.info.capacity ? `上限${a.info.capacity}人` : '上限なし'}${descChanged ? '・説明文を変更' : ''}）`;
+      }
+      if ('match' in a) return a.winner === null ? `1on1 トーナメント${name}の対戦結果を取り消し` : `1on1 トーナメント${name}の対戦結果を入力`;
+      if (a.status === 'running') return `1on1 トーナメント${name}の組み合わせを作成`;
+      if (a.status === 'entry') return `1on1 トーナメント${name}を申し込み受付に戻した`;
     }
   }
 

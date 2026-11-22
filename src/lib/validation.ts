@@ -110,7 +110,7 @@ export function validateEventInfo(
   return { ok: true, value: { name: name.value, held_on: heldOn, capacity } }
 }
 
-// イベントの説明文（1000文字まで。空なら null＝説明なし、送られてこなければ undefined＝変えない）
+// イベント・1on1 トーナメントの説明文（1000文字まで。空なら null＝説明なし、送られてこなければ undefined＝変えない）
 export const MAX_DESCRIPTION = 1000
 export function validateDescription(value: unknown): Result<string | null | undefined> {
   if (value === undefined) return { ok: true, value: undefined }

@@ -16,7 +16,7 @@ export const AdminPage = () => (
       </p>
       <button type="button" id="member-view-on" class="btn btn-small">一般部員として表示</button>
       <p class="note">
-        他の人の記録の修正・代理入力や、トーナメントの結果入力は、それぞれの画面で右下の「編集モード」をオンにすると行えます。
+        他の人の記録の修正・代理入力や、1on1 トーナメントの結果入力は、それぞれの画面で右下の「編集モード」をオンにすると行えます。
       </p>
     </div>
 
@@ -48,11 +48,11 @@ export const AdminPage = () => (
       <button type="submit" class="btn btn-primary">作成</button>
     </form>
 
-    <h2>トーナメントの作成</h2>
+    <h2>1on1 トーナメントの作成</h2>
     <form id="tournament-form" class="card form-row" novalidate>
       <label>
         大会名
-        <input id="tournament-name" type="text" maxlength={50} placeholder="例：新歓トーナメント" />
+        <input id="tournament-name" type="text" maxlength={50} placeholder="例：新歓1on1トーナメント" />
       </label>
       <label>
         開催日（未定なら空欄）
@@ -68,13 +68,13 @@ export const AdminPage = () => (
     {/* ここから下は長くなるので、見出しをタップしたときだけ開く */}
     <details class="fold-section">
       <summary>
-        <h2>月間リング・イベント・トーナメントの削除</h2>
+        <h2>月間リング・イベント・1on1 トーナメントの削除</h2>
       </summary>
       <p class="note">削除したものは、下の「削除したものを戻す」から元に戻せます。</p>
       <h3 class="admin-sub">月間リング・イベント</h3>
       <ul id="ranking-list" class="list"></ul>
       <p id="ranking-empty" class="muted" hidden>まだありません</p>
-      <h3 class="admin-sub">トーナメント</h3>
+      <h3 class="admin-sub">1on1 トーナメント</h3>
       <ul id="tournament-list" class="list"></ul>
       <p id="tournament-empty" class="muted" hidden>まだありません</p>
     </details>
@@ -84,7 +84,7 @@ export const AdminPage = () => (
         <h2>過去の記録のひも付け</h2>
       </summary>
       <p class="note">
-        取り込んだ過去の記録の、名前ごとのひも付け先です。ひも付け先を選び直して「変更」を押すと、元のひも付けは外れて新しい部員の記録になります。「未ひも付け」を選ぶと解除されます。月間リングの記録と一緒に、管理者が同じ名前で登録したイベント・トーナメントの参加記録もまとめて付け替えます（本人が自分で申し込んだ記録はそのままです）。ひも付けられるのは1人につき1つの名前までです。選べるのは、一度ログインしたことのある部員です。
+        取り込んだ過去の記録の、名前ごとのひも付け先です。ひも付け先を選び直して「変更」を押すと、元のひも付けは外れて新しい部員の記録になります。「未ひも付け」を選ぶと解除されます。月間リングの記録と一緒に、管理者が同じ名前で登録したイベント・1on1 トーナメントの参加記録もまとめて付け替えます（本人が自分で申し込んだ記録はそのままです）。ひも付けられるのは1人につき1つの名前までです。選べるのは、一度ログインしたことのある部員です。
         並びは、まだひも付いていない名前が先で、その中はそれぞれ名前のアルファベット順（大文字・小文字は区別しない）です。
       </p>
       <ul id="claim-list" class="list"></ul>
@@ -99,7 +99,7 @@ export const AdminPage = () => (
       <ul id="deleted-rankings" class="list"></ul>
       <h3 class="admin-sub">記録（新しい順に100件まで）</h3>
       <ul id="deleted-scores" class="list"></ul>
-      <h3 class="admin-sub">トーナメント</h3>
+      <h3 class="admin-sub">1on1 トーナメント</h3>
       <ul id="deleted-tournaments" class="list"></ul>
     </details>
 

@@ -1,7 +1,7 @@
 import { Hono } from 'hono'
 import type { AppEnv } from '../types'
 import { errorJson, parseId, readJson } from '../lib/http'
-import { validateBlinds, validateEventInfo, validatePlayedOn, validateRankingName, validateUserName } from '../lib/validation'
+import { validateBlinds, validateDescription, validateEventInfo, validatePlayedOn, validateRankingName, validateUserName } from '../lib/validation'
 import { blindLevelsOf } from '../lib/rules'
 import { auditStmt } from '../lib/audit'
 import { buildBracket } from '../lib/bracket'
@@ -17,6 +17,7 @@ type Tournament = {
   name: string
   held_on: string | null
   capacity: number | null
+  description: string | null
   blind_minutes: number
   blind_levels: string | null
   status: 'entry' | 'running' | 'finished'
@@ -38,7 +39,7 @@ const ENTRY_NAME = 'COALESCE(u.username, e.user_name)'
 
 function findTournament(db: D1Database, id: number) {
   return db
-    .prepare('SELECT id, name, held_on, capacity, blind_minutes, blind_levels, status FROM tournaments WHERE id = ? AND deleted_at IS NULL')
+    .prepare('SELECT id, name, held_on, capacity, description, blind_minutes, blind_levels, status FROM tournaments WHERE id = ? AND deleted_at IS NULL')
     .bind(id)
     .first<Tournament>()
 }
@@ -103,7 +104,7 @@ tournaments.post('/', requireAdmin, async (c) => {
   return c.json({ id: inserted.results[0].id, name: name.value, held_on: heldOn, capacity, status: 'entry' }, 201)
 })
 
-// 大会の情報（名前・開催日・募集上限）の変更（管理者だけ。上限は今の参加人数より少なくしてもよい）
+// 大会の情報（名前・開催日・募集上限・説明文）の変更（管理者だけ。上限は今の参加人数より少なくしてもよい）
 tournaments.put('/:id', requireAdmin, async (c) => {
   const id = parseId(c.req.param('id'))
   if (id === null) return errorJson(c, 400, '大会IDが正しくありません')
@@ -111,13 +112,18 @@ tournaments.put('/:id', requireAdmin, async (c) => {
   if (!body) return errorJson(c, 400, 'リクエストの形式が正しくありません')
   const info = validateEventInfo(body, '大会名')
   if (!info.ok) return errorJson(c, 400, info.error)
+  const desc = validateDescription(body.description)
+  if (!desc.ok) return errorJson(c, 400, desc.error)
   const t = await findTournament(c.env.DB, id)
   if (!t) return errorJson(c, 404, '大会が見つかりません')
-  const v = info.value
+  // 説明文が送られてこなかったときは、今の説明文をそのまま残す
+  const v = { ...info.value, description: desc.value === undefined ? t.description : desc.value }
   const actor = c.get('user').discord_id
   await c.env.DB.batch([
-    c.env.DB.prepare('UPDATE tournaments SET name = ?, held_on = ?, capacity = ? WHERE id = ?').bind(v.name, v.held_on, v.capacity, id),
-    auditStmt(c.env.DB, actor, 'update', 'tournament', id, { name: t.name, held_on: t.held_on, capacity: t.capacity }, { info: v }),
+    c.env.DB.prepare('UPDATE tournaments SET name = ?, held_on = ?, capacity = ?, description = ? WHERE id = ?')
+      .bind(v.name, v.held_on, v.capacity, v.description, id),
+    auditStmt(c.env.DB, actor, 'update', 'tournament', id,
+      { name: t.name, held_on: t.held_on, capacity: t.capacity, description: t.description }, { info: v }),
   ])
   return c.json({ ok: true, ...v })
 })
@@ -162,7 +168,7 @@ tournaments.get('/:id', async (c) => {
   const id = parseId(c.req.param('id'))
   if (id === null) return errorJson(c, 400, '大会IDが正しくありません')
   const [t, entries, matches, member] = await c.env.DB.batch([
-    c.env.DB.prepare('SELECT id, name, held_on, capacity, blind_minutes, blind_levels, status FROM tournaments WHERE id = ? AND deleted_at IS NULL').bind(id),
+    c.env.DB.prepare('SELECT id, name, held_on, capacity, description, blind_minutes, blind_levels, status FROM tournaments WHERE id = ? AND deleted_at IS NULL').bind(id),
     c.env.DB.prepare(
       `SELECT e.id, e.discord_id, ${ENTRY_NAME} AS name
        FROM tournament_entries e LEFT JOIN users u ON u.discord_id = e.discord_id

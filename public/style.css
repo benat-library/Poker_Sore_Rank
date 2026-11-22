@@ -735,7 +735,8 @@ body[data-edit="1"] main { padding-bottom: 72px; }
 .ev-star { flex-shrink: 0; color: var(--bk-gold); }
 .ev-hero-meta { margin: 0; font-size: 0.9rem; color: #ddd6fe; }
 /* 説明文（改行をそのまま出す） */
-.ev-hero-desc { position: relative; margin: 10px 0 0; font-size: 0.9rem; line-height: 1.6; white-space: pre-wrap; overflow-wrap: anywhere; color: #f5f3ff; }
+.ev-hero-desc, .tm-hero-desc { position: relative; margin: 10px 0 0; font-size: 0.9rem; line-height: 1.6; white-space: pre-wrap; overflow-wrap: anywhere; color: #f5f3ff; }
+.tm-hero-desc { margin: -4px 0 12px; color: #fff; } /* 1on1 トーナメントは開催日と参加者の間に入れる */
 /* 開催中：残っている人（編集モードではタップで「飛んだ」を記録） */
 .ev-remaining .tm-entry { padding: 0; }
 .ev-remaining .tm-entry > .tm-entry-name { padding: 9px 14px; }
